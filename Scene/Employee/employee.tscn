@@ -1,0 +1,31 @@
+[gd_scene format=3 uid="uid://dde36lq3e43ux"]
+
+[ext_resource type="Script" uid="uid://bhipcivgy45gi" path="res://Script/Employee/employee.gd" id="1_jxkjj"]
+[ext_resource type="Texture2D" uid="uid://ca62egwhk37sx" path="res://Sprites/Employee/c1.png" id="1_ybawb"]
+[ext_resource type="Script" uid="uid://bsnq2ptqd8pug" path="res://Script/Employee/State/employee_statemanager.gd" id="3_h6770"]
+[ext_resource type="Script" uid="uid://cg3n2211ffo84" path="res://Script/Employee/State/go_work.gd" id="4_1cihl"]
+[ext_resource type="Script" uid="uid://ck867qh8i584f" path="res://Script/Employee/State/off_work.gd" id="5_jexqk"]
+
+[node name="Employee" type="Node2D" unique_id=875372456 node_paths=PackedStringArray("employee_state_manager")]
+script = ExtResource("1_jxkjj")
+employee_state_manager = NodePath("EmployeeStateManager")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=895572275]
+position = Vector2(0, -12)
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("1_ybawb")
+
+[node name="EmployeeStateManager" type="Node" parent="." unique_id=1543571315 node_paths=PackedStringArray("employee", "initial_state")]
+script = ExtResource("3_h6770")
+employee = NodePath("..")
+initial_state = NodePath("GoWork")
+metadata/_custom_type_script = "uid://bsnq2ptqd8pug"
+
+[node name="GoWork" type="Node" parent="EmployeeStateManager" unique_id=260938362]
+script = ExtResource("4_1cihl")
+metadata/_custom_type_script = "uid://di5j6e11st0lo"
+
+[node name="OffWork" type="Node" parent="EmployeeStateManager" unique_id=189860270]
+script = ExtResource("5_jexqk")
+state_name = 1
+metadata/_custom_type_script = "uid://di5j6e11st0lo"
