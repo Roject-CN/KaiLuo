@@ -1,6 +1,7 @@
 extends Node2D
 class_name Employee
 
+@export var employee_name : String = "员工"
 @export var speed := 80.0
 @export var employee_state_manager : EmployeeStateManager
 

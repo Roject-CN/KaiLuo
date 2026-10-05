@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://c8j4mv2qx7pnr"]
+
+[ext_resource type="Script" path="res://Script/Debug/employee_state_debug_panel.gd" id="1_panel"]
+
+[node name="EmployeeStateDebugPanel" type="CanvasLayer"]
+script = ExtResource("1_panel")

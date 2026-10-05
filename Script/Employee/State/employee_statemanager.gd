@@ -1,6 +1,9 @@
 extends Node
 class_name EmployeeStateManager
 
+## 状态切换完成后发出，方便调试面板之类的监听者刷新显示
+signal state_changed(to_state: EmployeeState)
+
 var states : Array[EmployeeState]
 var current_state : EmployeeState
 @export var employee : Employee
@@ -32,4 +35,9 @@ func transition(to_state : EmployeeState) -> void:
 	if current_state:
 		current_state.state_exit()
 	current_state = to_state
-	current_state.state_enter()	
+	current_state.state_enter()
+	state_changed.emit(current_state)
+
+## 当前状态（供调试面板之类的外部查询）
+func get_current_state() -> EmployeeState:
+	return current_state
