@@ -40,6 +40,13 @@ func _ready() -> void:
 	if not employee_state_manager:
 		push_error("Employee: employee_state_manager 未设置")
 		return
+
+func init() -> void:
+	# 延后到本帧末尾才进初始状态：调用方通常在自己的 _ready 里配置坐标和导航服务，
+	# 立刻进状态的话，初始状态里的寻路会撞上还没配置好的服务
+	_start_initial_state.call_deferred()
+
+func _start_initial_state() -> void:
 	employee_state_manager.start_state_manager()
 
 func _physics_process(delta: float) -> void:

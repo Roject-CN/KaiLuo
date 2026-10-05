@@ -13,7 +13,6 @@ func set_up(navi : TileMapLayer, path : TileMapLayer) -> void:
 	if not (navigation_layer and path_layer):
 		push_error("NavService: navigation_layer 未设置")
 		return
-
 	if not navigation_layer.tile_set:
 		push_error("NavService: navigation_layer 没有设置 tile_set，无法建立导航栅格")
 		return
@@ -46,10 +45,10 @@ func cell_to_world(cell: Vector2i) -> Vector2:
 #检测是否能够导航
 func is_walkable(cell: Vector2i) -> bool:
 	if not astar.region.has_point(cell):
-		print("false")
+		print("false1")
 		return false
 	if astar.is_point_solid(cell):
-		print("false")
+		print("false2")
 		return false
 	return true
 

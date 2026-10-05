@@ -1,9 +1,13 @@
 extends CanvasLayer
 class_name EmployeeDebugPanel
 
-## 员工状态调试面板（只给 test.tscn 这类测试场景用）
+## 员工状态调试面板 —— 仅供测试场景使用，生产代码不需要为它改任何东西。
 ##
-## 场景结构见 Scene/Debug/EmployeeStateDebugPanel.tscn，全部节点都在编辑器里可见可改：
+## 用法：把 Scene/Debug/EmployeeStateDebugPanel.tscn 作为一个节点放进测试场景即可。
+## 面板会自己扫描所在场景里的 Employee，不需要在别的脚本里登记、也不需要信号配合。
+## 不想要它就删掉那个节点。
+##
+## 场景结构（全部节点在编辑器里可见可改）：
 ##   DebugPanel (CanvasLayer)
 ##   └── Margin
 ##       └── Panel
@@ -16,7 +20,7 @@ class_name EmployeeDebugPanel
 ##               │   └── StateButtons/StateButton  ← 隐藏的模板按钮，按需复制
 ##               └── Row_xxx                       ← 每个员工一行（克隆出来的）
 ##
-## 脚本只做三件事：克隆模板、把状态子节点接到按钮上、维护高亮。
+## 脚本只做四件事：找员工、克隆模板、按状态子节点生成按钮、维护高亮。
 
 const ROW_PREFIX := "Row_"
 
@@ -33,13 +37,17 @@ const COLOR_LIGHT_TEXT := Color(0.12, 0.12, 0.12)
 @onready var name_label_template : Label = $Margin/Panel/Column/RowTemplate/NameLabel
 @onready var button_template : Button = $Margin/Panel/Column/RowTemplate/StateButtons/StateButton
 
-## 员工在哪一层由 test.gd 在运行时告诉面板（见 track_employees）
-var employee_manager : Node2D
+## 按钮文字。留空则按下面的默认值；以后加状态只改这里，不用动生产代码。
+@export var state_labels : Dictionary = {
+	EmployeeState.STATE.GOWORK: "上班",
+	EmployeeState.STATE.OFFWORK: "下班",
+}
 
-var _buttons: Dictionary = {}          # Employee -> Array[Button]
-var _fingerprints: Dictionary = {}     # Employee -> 状态子节点数量
-var _tracked: Array[Employee] = []     # 已登记、需要显示成行的员工
-## 重建期间抑制 refresh 重入。否则 rebuild -> track -> refresh -> rebuild 会无限递归。
+var _tracked: Array[Employee] = []          # 已登记的员工
+var _buttons: Dictionary = {}               # Employee -> Array[Button]
+var _fingerprints: Dictionary = {}          # Employee -> 状态子节点数量
+var _last_state: Dictionary = {}            # Employee -> 上次看到的状态（用于轮询比对）
+## 重建期间抑制 refresh 重入。否则 rebuild -> refresh -> rebuild 会无限递归。
 var _mutating := false
 
 
@@ -54,39 +62,79 @@ func _ready() -> void:
 		push_error("EmployeeDebugPanel: 场景里这些 @export 没接上：%s" % ", ".join(missing))
 		return
 
-	if row_template:
-		row_template.visible = false
+	row_template.visible = false
+
+	# 面板往往比测试脚本先 _ready（子节点在前），这时场景根还没挂上，
+	# 等一帧再找员工，那时场景已经完整、员工的 _ready 也都跑完了
+	if get_tree().current_scene:
+		_tracked = _collect_employees()
+		rebuild()
+	else:
+		_deferred_start.call_deferred()
 
 
-# ---------------------------------------------------------------- 对外接口
-## 把 manager 下面的员工全部登记上来。由 test.gd 在 _ready 里调用——
-## 面板的 _ready 跑在员工之后，那时 test.gd 还没执行，拿不到 manager。
-func track_employees(manager: Node) -> void:
-	employee_manager = manager as Node2D
-	for employee in _find_employees(manager):
-		_tracked.append(employee)
-		_connect_manager(employee)
+func _deferred_start() -> void:
+	_tracked = _collect_employees()
 	rebuild()
 
 
-## 登记一个员工（只登记，行和按钮由 rebuild 统一生成）
+## 自己找员工：从所在场景往下递归。不需要别的脚本登记。
+## 优先认 "employee" 分组，没分组就按类型认。
+func _collect_employees() -> Array[Employee]:
+	var found: Array[Employee] = []
+	for node in get_tree().get_nodes_in_group("employee"):
+		var grouped := node as Employee
+		if grouped and grouped not in found:
+			found.append(grouped)
+	if not found.is_empty():
+		return found
+
+	var scene := get_tree().current_scene
+	if scene:
+		_collect_in(scene, found)
+	return found
+
+
+func _collect_in(node: Node, found: Array[Employee]) -> void:
+	var employee := node as Employee
+	if employee:
+		found.append(employee)
+	for child in node.get_children():
+		_collect_in(child, found)
+
+
+## 每帧轮询当前状态：状态一变就挪高亮。不需要生产代码发信号。
+func _process(_delta: float) -> void:
+	refresh()
+
+
+## 对外：手动登记一个员工（一般不需要，_ready 会自动找）
 func track(employee: Employee) -> void:
 	if not employee or not row_template:
 		return
 	if employee not in _tracked:
 		_tracked.append(employee)
-	_connect_manager(employee)
 	rebuild()
 
 
-## 状态变化时刷新高亮，并侦测状态子节点的增删
+# ---------------------------------------------------------------- 刷新
+## 状态变了挪高亮；状态子节点增删了整块重建
 func refresh() -> void:
 	if _mutating or _tracked.is_empty():
 		return
 	if _employee_fingerprints() != _fingerprints:
 		rebuild()
 		return
-	_update_highlight()
+	if _states_changed():
+		_update_highlight()
+
+
+func _states_changed() -> bool:
+	for employee in _tracked:
+		var current := _current_state(employee)
+		if _last_state.get(employee, null) != current:
+			return true
+	return false
 
 
 ## 重建所有行。整段过程用 _mutating 挡住 refresh 的重入。
@@ -114,28 +162,28 @@ func rebuild() -> void:
 	_update_highlight()
 
 
-## 状态枚举 -> 显示文字
+## 状态 -> 按钮文字
 func state_name_text(state: EmployeeState) -> String:
-	match state.state_name:
-		EmployeeState.STATE.GOWORK:
-			return "上班"
-		EmployeeState.STATE.OFFWORK:
-			return "下班"
-		_:
-			return state.name
+	if state_labels.has(state.state_name):
+		return str(state_labels[state.state_name])
+	return state.name
 
 
-# ---------------------------------------------------------------- 行走与按钮
+# ---------------------------------------------------------------- 一行与按钮
 func _spawn_row() -> HBoxContainer:
 	var row := row_template.duplicate() as HBoxContainer
 	row.name = "Row_新员工"
 	row.visible = true
 	row.set_meta("employee", null)
 	row.set_meta("pending_deletion", false)
-	for child in row.get_children():
-		if child.name == "StateButtons":
-			for button in child.get_children():
-				button.queue_free()
+	# 立刻把克隆来的示例按钮摘掉。用 remove_child + queue_free，
+	# 而不是只 queue_free —— 后者要到帧末才生效，本帧内它仍在树上，
+	# 会被 _fill_row 当成"已存在的按钮"，导致按钮被反复重建。
+	var button_host := row.get_node_or_null("StateButtons")
+	if button_host:
+		for button in button_host.get_children():
+			button_host.remove_child(button)
+			button.queue_free()
 	row_template.get_parent().add_child(row)
 	return row
 
@@ -184,7 +232,7 @@ func _fill_row(row: HBoxContainer, employee: Employee) -> void:
 	var existing: Array[Button] = []
 	for child in button_host.get_children():
 		var button := child as Button
-		if button and button != button_template:
+		if button and not button.is_queued_for_deletion():
 			existing.append(button)
 	if _buttons_match(existing, states):
 		_buttons[employee] = existing
@@ -227,11 +275,11 @@ func _on_state_button_pressed(employee: Employee, state: EmployeeState) -> void:
 	if not manager:
 		return
 	manager.transition(state)
-	refresh()
+	_update_highlight()
 
 
 func _on_state_button_gui_input(event: InputEvent) -> void:
-	# 面板里的鼠标事件到此为止，别让 test.gd 的“点击导航”把它当成场景点击
+	# 面板里的鼠标事件到此为止，别让测试场景的“点击导航”把它当成场景点击
 	if event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
 		var viewport := get_viewport()
 		if viewport:
@@ -241,8 +289,8 @@ func _on_state_button_gui_input(event: InputEvent) -> void:
 # ---------------------------------------------------------------- 高亮
 func _update_highlight() -> void:
 	for employee in _buttons:
-		var manager: EmployeeStateManager = employee.employee_state_manager
-		var current: EmployeeState = manager.get_current_state() if manager else null
+		var current := _current_state(employee)
+		_last_state[employee] = current
 		for button in _buttons[employee]:
 			var is_active: bool = current != null and button.get_meta("state") == current
 			button.set_pressed_no_signal(is_active)
@@ -272,17 +320,11 @@ func _style_button(button: Button, is_active: bool) -> void:
 
 
 # ---------------------------------------------------------------- 工具
-## 在 root 下面递归找所有 Employee
-func _find_employees(root: Node) -> Array[Employee]:
-	var found: Array[Employee] = []
-	if not root:
-		return found
-	for child in root.get_children():
-		var employee := child as Employee
-		if employee:
-			found.append(employee)
-		found.append_array(_find_employees(child))
-	return found
+func _current_state(employee: Employee) -> EmployeeState:
+	var manager := employee.employee_state_manager
+	if not manager:
+		return null
+	return manager.get_current_state()
 
 
 func _state_nodes(manager: EmployeeStateManager) -> Array[EmployeeState]:
@@ -293,18 +335,6 @@ func _state_nodes(manager: EmployeeStateManager) -> Array[EmployeeState]:
 		if child is EmployeeState and not found.has(child):
 			found.append(child)
 	return found
-
-
-func _connect_manager(employee: Employee) -> void:
-	var manager := employee.employee_state_manager
-	if not manager:
-		return
-	if not manager.state_changed.is_connected(_on_state_changed):
-		manager.state_changed.connect(_on_state_changed)
-
-
-func _on_state_changed(_to_state: EmployeeState) -> void:
-	refresh()
 
 
 func _employee_fingerprints() -> Dictionary:
