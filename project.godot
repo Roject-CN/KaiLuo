@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="KaiLuo"
-run/main_scene="res://scene/test.tscn"
+run/main_scene="res://Scene/test.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 
