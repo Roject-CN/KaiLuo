@@ -12,12 +12,10 @@ class_name EmployeeDebugPanel
 ##   └── Margin
 ##       └── Panel
 ##           └── Column
-##               ├── Header
-##               │   ├── NameColumn/HeaderLabel    "员工"
-##               │   └── StateColumn/HeaderLabel   "状态"
 ##               ├── RowTemplate                   ← 隐藏的模板行，按需复制
 ##               │   ├── NameLabel
 ##               │   └── StateButtons/StateButton  ← 隐藏的模板按钮，按需复制
+##               ├── Header                        ← 表头（脚本按列生成）
 ##               └── Row_xxx                       ← 每个员工一行（克隆出来的）
 ##
 ## 脚本只做四件事：找员工、克隆模板、按状态子节点生成按钮、维护高亮。
@@ -31,8 +29,6 @@ const COLOR_LIGHT_TEXT := Color(0.12, 0.12, 0.12)
 
 ## 场景里的节点都用 @onready 直接取，不用 @export 连线：
 ## 路径写死在这里，节点树在编辑器里照样可见可改。
-@onready var name_column : VBoxContainer = $Margin/Panel/Column/Header/NameColumn
-@onready var state_column : VBoxContainer = $Margin/Panel/Column/Header/StateColumn
 @onready var row_template : HBoxContainer = $Margin/Panel/Column/RowTemplate
 @onready var name_label_template : Label = $Margin/Panel/Column/RowTemplate/NameLabel
 @onready var button_template : Button = $Margin/Panel/Column/RowTemplate/StateButtons/StateButton
@@ -53,13 +49,11 @@ var _mutating := false
 
 func _ready() -> void:
 	var missing: Array[String] = []
-	if not name_column: missing.append("name_column")
-	if not state_column: missing.append("state_column")
 	if not row_template: missing.append("row_template")
 	if not name_label_template: missing.append("name_label_template")
 	if not button_template: missing.append("button_template")
 	if not missing.is_empty():
-		push_error("EmployeeDebugPanel: 场景里这些 @export 没接上：%s" % ", ".join(missing))
+		push_error("EmployeeDebugPanel: 场景里这些节点没找到：%s" % ", ".join(missing))
 		return
 
 	row_template.visible = false
@@ -143,23 +137,69 @@ func rebuild() -> void:
 		return
 	_mutating = true
 
-	# 1) 该删除的行：不再被登记、或标记为待删除的
-	for row in _rows():
-		var owner := _row_employee(row)
-		if owner == null or owner not in _tracked or row.get_meta("pending_deletion", false):
-			row.set_meta("pending_deletion", true)
-			row.queue_free()
+	# 1) 清掉上一次建出来的行与表头：它们都是运行时生成的，
+	#    场景里那份只是模板（隐藏的 RowTemplate）
+	_clear_column()
+	# 一个表头行里，每个格子对应一列
+	var header_row := _make_header()
+	_add_header_cell(header_row, "员工")
+	for i in range(_state_column_count()):
+		_add_header_cell(header_row, state_name_text(_state_column_state(i)))
 
-	# 2) 每个员工一行：已经有行的复用，没有的克隆模板
+	# 2) 每个员工一行：克隆模板
 	for employee in _tracked:
-		var row := _row_for(employee)
-		if not row:
-			row = _spawn_row()
-		_fill_row(row, employee)
+		_fill_row(_spawn_row(), employee)
 
 	_fingerprints = _employee_fingerprints()
 	_mutating = false
 	_update_highlight()
+
+
+## 表头是一个横排：第一个格子是"员工"，之后每个状态一个格子。
+## 状态列以第一个员工的状态子节点为准（同一批员工通常共用同一套状态）。
+func _make_header() -> HBoxContainer:
+	var column := row_template.get_parent()
+	var header_row := HBoxContainer.new()
+	header_row.name = _unique_name(column, "Header")
+	header_row.add_theme_constant_override("separation", 6)
+	header_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(header_row)
+	return header_row
+
+
+func _add_header_cell(header_row: HBoxContainer, text: String) -> void:
+	var title := name_label_template.duplicate() as Label
+	title.name = _unique_name(header_row, "HeaderLabel")
+	title.text = text
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header_row.add_child(title)
+
+
+func _state_column_count() -> int:
+	if _tracked.is_empty():
+		return 0
+	return _state_nodes(_tracked[0].employee_state_manager).size()
+
+
+func _state_column_state(index: int) -> EmployeeState:
+	if _tracked.is_empty():
+		return null
+	var states := _state_nodes(_tracked[0].employee_state_manager)
+	if index < 0 or index >= states.size():
+		return null
+	return states[index]
+
+
+## 只清运行时建出来的行（表头 + Row_xxx），保留隐藏的 RowTemplate
+func _clear_column() -> void:
+	var column := row_template.get_parent()
+	for child in column.get_children():
+		if child == row_template:
+			continue
+		if child is HBoxContainer:
+			column.remove_child(child)
+			child.queue_free()
 
 
 ## 状态 -> 按钮文字
@@ -174,11 +214,9 @@ func _spawn_row() -> HBoxContainer:
 	var row := row_template.duplicate() as HBoxContainer
 	row.name = "Row_新员工"
 	row.visible = true
-	row.set_meta("employee", null)
-	row.set_meta("pending_deletion", false)
 	# 立刻把克隆来的示例按钮摘掉。用 remove_child + queue_free，
 	# 而不是只 queue_free —— 后者要到帧末才生效，本帧内它仍在树上，
-	# 会被 _fill_row 当成"已存在的按钮"，导致按钮被反复重建。
+	# 会被当成"已存在的按钮"。
 	var button_host := row.get_node_or_null("StateButtons")
 	if button_host:
 		for button in button_host.get_children():
@@ -188,35 +226,9 @@ func _spawn_row() -> HBoxContainer:
 	return row
 
 
-func _rows() -> Array[HBoxContainer]:
-	var found: Array[HBoxContainer] = []
-	if not row_template:
-		return found
-	for child in row_template.get_parent().get_children():
-		var row := child as HBoxContainer
-		if row and row != row_template:
-			found.append(row)
-	return found
-
-
-func _row_employee(row: HBoxContainer) -> Employee:
-	if not row.has_meta("employee"):
-		return null
-	return row.get_meta("employee") as Employee
-
-
-func _row_for(employee: Employee) -> HBoxContainer:
-	for row in _rows():
-		if row.get_meta("pending_deletion", false):
-			continue
-		if _row_employee(row) == employee:
-			return row
-	return null
-
-
 func _fill_row(row: HBoxContainer, employee: Employee) -> void:
 	row.set_meta("employee", employee)
-	row.name = ROW_PREFIX + _safe_name(employee.employee_name)
+	row.name = _unique_name(row.get_parent(), ROW_PREFIX + _safe_name(employee.employee_name))
 
 	var name_label := row.get_node_or_null("NameLabel") as Label
 	if name_label:
@@ -226,40 +238,17 @@ func _fill_row(row: HBoxContainer, employee: Employee) -> void:
 	if not button_host:
 		return
 
-	var states := _state_nodes(employee.employee_state_manager)
-
-	# 现有按钮已经和状态列表对得上就复用，不要每帧重建按钮
-	var existing: Array[Button] = []
-	for child in button_host.get_children():
-		var button := child as Button
-		if button and not button.is_queued_for_deletion():
-			existing.append(button)
-	if _buttons_match(existing, states):
-		_buttons[employee] = existing
-		return
-
-	for button in existing:
-		button_host.remove_child(button)
-		button.queue_free()
-
+	# 行是刚克隆出来的，里面只有一个示例按钮，已经在 _spawn_row 里摘掉了，
+	# 所以这里直接按状态列表生成即可
 	var buttons: Array[Button] = []
-	for state in states:
+	for state in _state_nodes(employee.employee_state_manager):
 		buttons.append(_spawn_button(button_host, employee, state))
 	_buttons[employee] = buttons
 
 
-func _buttons_match(buttons: Array[Button], states: Array[EmployeeState]) -> bool:
-	if buttons.size() != states.size():
-		return false
-	for i in range(buttons.size()):
-		if buttons[i].get_meta("state", null) != states[i]:
-			return false
-	return true
-
-
 func _spawn_button(host: HBoxContainer, employee: Employee, state: EmployeeState) -> Button:
 	var button := button_template.duplicate() as Button
-	button.name = _safe_name(state.name)
+	button.name = _unique_name(host, _safe_name(state.name))
 	button.text = state_name_text(state)
 	button.visible = true
 	button.set_meta("employee", employee)
@@ -344,6 +333,7 @@ func _employee_fingerprints() -> Dictionary:
 	return result
 
 
+## Godot 节点名用：中文会被过滤掉，这时回退到 "Node"，由 _unique_name 保证不重名
 func _safe_name(raw: String) -> String:
 	var cleaned := ""
 	for i in range(raw.length()):
@@ -351,3 +341,13 @@ func _safe_name(raw: String) -> String:
 		if ch.is_valid_identifier():
 			cleaned += ch
 	return cleaned if cleaned != "" else "Node"
+
+
+## 在 parent 下找一个不重名的名字，避免 Godot 自动加 @2 后缀
+func _unique_name(parent: Node, wanted: String) -> String:
+	if not parent.has_node(NodePath(wanted)):
+		return wanted
+	var index := 2
+	while parent.has_node(NodePath("%s%d" % [wanted, index])):
+		index += 1
+	return "%s%d" % [wanted, index]

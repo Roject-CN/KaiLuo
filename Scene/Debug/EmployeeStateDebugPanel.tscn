@@ -21,27 +21,6 @@ theme_override_constants/margin_bottom = 6
 [node name="Column" type="VBoxContainer" parent="Margin/Panel"]
 theme_override_constants/separation = 4
 
-[node name="Header" type="HBoxContainer" parent="Margin/Panel/Column"]
-theme_override_constants/separation = 6
-
-[node name="NameColumn" type="VBoxContainer" parent="Margin/Panel/Column/Header"]
-theme_override_constants/separation = 4
-
-[node name="HeaderLabel" type="Label" parent="Margin/Panel/Column/Header/NameColumn"]
-custom_minimum_size = Vector2(176, 0)
-layout_mode = 2
-text = "员工"
-horizontal_alignment = 1
-
-[node name="StateColumn" type="VBoxContainer" parent="Margin/Panel/Column/Header"]
-theme_override_constants/separation = 4
-
-[node name="HeaderLabel" type="Label" parent="Margin/Panel/Column/Header/StateColumn"]
-custom_minimum_size = Vector2(176, 0)
-layout_mode = 2
-text = "状态"
-horizontal_alignment = 1
-
 [node name="RowTemplate" type="HBoxContainer" parent="Margin/Panel/Column"]
 visible = false
 theme_override_constants/separation = 6
