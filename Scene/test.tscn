@@ -3,6 +3,8 @@
 [ext_resource type="Script" uid="uid://c46oulegcif4a" path="res://Script/test.gd" id="1_u3ux8"]
 [ext_resource type="Texture2D" uid="uid://bnk01eatbrb1t" path="res://Sprites/Company/1.png" id="2_vrsyt"]
 [ext_resource type="Texture2D" uid="uid://b8b6omsjcbejg" path="res://Sprites/Company/placeholder.png" id="3_asc4v"]
+[ext_resource type="PackedScene" uid="uid://c8j4mv2qx7pnr" path="res://Scene/Debug/EmployeeStateDebugPanel.tscn" id="4_dbg"]
+[ext_resource type="PackedScene" uid="uid://dde36lq3e43ux" path="res://Scene/Employee/employee.tscn" id="5_emp"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_1i1hv"]
 texture = ExtResource("2_vrsyt")
@@ -62,13 +64,14 @@ texture = ExtResource("3_asc4v")
 [sub_resource type="TileSet" id="TileSet_q16p7"]
 sources/0 = SubResource("TileSetAtlasSource_asc4v")
 
-[node name="Test" type="Node2D" unique_id=1843599658 node_paths=PackedStringArray("navigation_layer", "path_layer", "employee_manager", "spawn_marker", "work_marker")]
+[node name="Test" type="Node2D" unique_id=1843599658 node_paths=PackedStringArray("navigation_layer", "path_layer", "employee_manager", "spawn_marker", "work_marker", "debug_panel")]
 script = ExtResource("1_u3ux8")
 navigation_layer = NodePath("Navigation")
 path_layer = NodePath("Path")
 employee_manager = NodePath("EmployeeManager")
 spawn_marker = NodePath("Markers/Spawn")
 work_marker = NodePath("Markers/Work")
+debug_panel = NodePath("DebugPanel")
 
 [node name="TileMapLayer" type="TileMapLayer" parent="." unique_id=1971815963]
 position = Vector2(0, -1)
@@ -84,6 +87,12 @@ tile_set = SubResource("TileSet_q16p7")
 
 [node name="EmployeeManager" type="Node2D" parent="." unique_id=1261291812]
 
+[node name="员工1" parent="EmployeeManager" unique_id=1642210831 instance=ExtResource("5_emp")]
+employee_name = "员工1"
+
+[node name="员工2" parent="EmployeeManager" unique_id=1928374650 instance=ExtResource("5_emp")]
+employee_name = "员工2"
+
 [node name="Markers" type="Node2D" parent="." unique_id=320039173]
 
 [node name="Spawn" type="Marker2D" parent="Markers" unique_id=8139766]
@@ -91,3 +100,5 @@ position = Vector2(313, 554)
 
 [node name="Work" type="Marker2D" parent="Markers" unique_id=597482172]
 position = Vector2(232, 334)
+
+[node name="DebugPanel" parent="." unique_id=447120938 instance=ExtResource("4_dbg")]

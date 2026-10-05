@@ -3,56 +3,85 @@ class_name EmployeeDebugPanel
 
 ## 员工状态调试面板（只给 test.tscn 这类测试场景用）
 ##
-## 结构：CanvasLayer -> MarginContainer -> PanelContainer -> VBoxContainer
-##   ├── 表头 HBoxContainer：员工 | 状态
-##   ├── 员工行 HBoxContainer：员工1 | [上班] [下班]
-##   └── 员工行 HBoxContainer：员工2 | [上班] [下班]
-## 按钮按 EmployeeStateManager 下的状态子节点自动生成：以后新增一个状态文件
-## 并挂到 EmployeeStateManager 下，面板会自动多出对应按钮，不用改这里的代码。
+## 场景结构见 Scene/Debug/EmployeeStateDebugPanel.tscn，全部节点都在编辑器里可见可改：
+##   DebugPanel (CanvasLayer)
+##   └── Margin
+##       └── Panel
+##           └── Column
+##               ├── Header
+##               │   ├── NameColumn/HeaderLabel    "员工"
+##               │   └── StateColumn/HeaderLabel   "状态"
+##               ├── RowTemplate                   ← 隐藏的模板行，按需复制
+##               │   ├── NameLabel
+##               │   └── StateButtons/StateButton  ← 隐藏的模板按钮，按需复制
+##               └── Row_xxx                       ← 每个员工一行（克隆出来的）
+##
+## 脚本只做三件事：克隆模板、把状态子节点接到按钮上、维护高亮。
 
-const PANEL_WIDTH := 176.0
+const ROW_PREFIX := "Row_"
 
 ## 当前状态按钮的高亮底色
 const HIGHLIGHT_BG := Color(0.29, 0.56, 1.0, 0.40)
 const COLOR_DARK_TEXT := Color(1, 1, 1)
 const COLOR_LIGHT_TEXT := Color(0.12, 0.12, 0.12)
 
-var column: VBoxContainer
-var _margin: MarginContainer
-var _employees: Array[Employee] = []
+## 场景里的节点都用 @onready 直接取，不用 @export 连线：
+## 路径写死在这里，节点树在编辑器里照样可见可改。
+@onready var name_column : VBoxContainer = $Margin/Panel/Column/Header/NameColumn
+@onready var state_column : VBoxContainer = $Margin/Panel/Column/Header/StateColumn
+@onready var row_template : HBoxContainer = $Margin/Panel/Column/RowTemplate
+@onready var name_label_template : Label = $Margin/Panel/Column/RowTemplate/NameLabel
+@onready var button_template : Button = $Margin/Panel/Column/RowTemplate/StateButtons/StateButton
+
+## 员工在哪一层由 test.gd 在运行时告诉面板（见 track_employees）
+var employee_manager : Node2D
+
 var _buttons: Dictionary = {}          # Employee -> Array[Button]
 var _fingerprints: Dictionary = {}     # Employee -> 状态子节点数量
+var _tracked: Array[Employee] = []     # 已登记、需要显示成行的员工
+## 重建期间抑制 refresh 重入。否则 rebuild -> track -> refresh -> rebuild 会无限递归。
+var _mutating := false
 
 
 func _ready() -> void:
-	layer = 100
-	_build_shell()
+	var missing: Array[String] = []
+	if not name_column: missing.append("name_column")
+	if not state_column: missing.append("state_column")
+	if not row_template: missing.append("row_template")
+	if not name_label_template: missing.append("name_label_template")
+	if not button_template: missing.append("button_template")
+	if not missing.is_empty():
+		push_error("EmployeeDebugPanel: 场景里这些 @export 没接上：%s" % ", ".join(missing))
+		return
 
-	var timer := Timer.new()
-	timer.name = "AutoRefresh"
-	timer.wait_time = 0.1
-	timer.autostart = true
-	timer.timeout.connect(refresh)
-	add_child(timer)
+	if row_template:
+		row_template.visible = false
 
 
 # ---------------------------------------------------------------- 对外接口
-## 注册一个要被调试的员工
+## 把 manager 下面的员工全部登记上来。由 test.gd 在 _ready 里调用——
+## 面板的 _ready 跑在员工之后，那时 test.gd 还没执行，拿不到 manager。
+func track_employees(manager: Node) -> void:
+	employee_manager = manager as Node2D
+	for employee in _find_employees(manager):
+		_tracked.append(employee)
+		_connect_manager(employee)
+	rebuild()
+
+
+## 登记一个员工（只登记，行和按钮由 rebuild 统一生成）
 func track(employee: Employee) -> void:
-	if not employee:
+	if not employee or not row_template:
 		return
-	if employee not in _employees:
-		_employees.append(employee)
+	if employee not in _tracked:
+		_tracked.append(employee)
 	_connect_manager(employee)
 	rebuild()
 
 
-## 状态有变化时刷新高亮，顺便侦测状态子节点的增删
+## 状态变化时刷新高亮，并侦测状态子节点的增删
 func refresh() -> void:
-	if not column or _employees.is_empty():
-		return
-	if _buttons.is_empty():
-		rebuild()
+	if _mutating or _tracked.is_empty():
 		return
 	if _employee_fingerprints() != _fingerprints:
 		rebuild()
@@ -60,21 +89,28 @@ func refresh() -> void:
 	_update_highlight()
 
 
-## 全部重建（状态增删后调用）
+## 重建所有行。整段过程用 _mutating 挡住 refresh 的重入。
 func rebuild() -> void:
-	if not column:
+	if not row_template or _mutating:
 		return
-	_clear_row(column)
+	_mutating = true
 
-	if _employees.is_empty():
-		return
+	# 1) 该删除的行：不再被登记、或标记为待删除的
+	for row in _rows():
+		var owner := _row_employee(row)
+		if owner == null or owner not in _tracked or row.get_meta("pending_deletion", false):
+			row.set_meta("pending_deletion", true)
+			row.queue_free()
 
-	_make_column("员工")
-	_make_column("状态")
-	for employee in _employees:
-		_add_employee_row(employee)
+	# 2) 每个员工一行：已经有行的复用，没有的克隆模板
+	for employee in _tracked:
+		var row := _row_for(employee)
+		if not row:
+			row = _spawn_row()
+		_fill_row(row, employee)
 
 	_fingerprints = _employee_fingerprints()
+	_mutating = false
 	_update_highlight()
 
 
@@ -89,121 +125,103 @@ func state_name_text(state: EmployeeState) -> String:
 			return state.name
 
 
-# ---------------------------------------------------------------- 搭外壳
-func _build_shell() -> void:
-	_margin = MarginContainer.new()
-	_margin.name = "Margin"
-	_margin.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_margin.position = Vector2(8, 8)
-	_margin.add_theme_constant_override("margin_left", 8)
-	_margin.add_theme_constant_override("margin_top", 6)
-	_margin.add_theme_constant_override("margin_right", 8)
-	_margin.add_theme_constant_override("margin_bottom", 6)
-	add_child(_margin)
-
-	var panel := PanelContainer.new()
-	panel.name = "Panel"
-	_margin.add_child(panel)
-
-	column = VBoxContainer.new()
-	column.name = "Column"
-	column.add_theme_constant_override("separation", 4)
-	panel.add_child(column)
+# ---------------------------------------------------------------- 行走与按钮
+func _spawn_row() -> HBoxContainer:
+	var row := row_template.duplicate() as HBoxContainer
+	row.name = "Row_新员工"
+	row.visible = true
+	row.set_meta("employee", null)
+	row.set_meta("pending_deletion", false)
+	for child in row.get_children():
+		if child.name == "StateButtons":
+			for button in child.get_children():
+				button.queue_free()
+	row_template.get_parent().add_child(row)
+	return row
 
 
-## 建表头行，并返回这一列表头 Label（各列的表头会横向排在同一行里）
-func _make_column(header_text: String) -> Label:
-	var header_row: Node = column.get_node_or_null("Header")
-	if not header_row:
-		header_row = HBoxContainer.new()
-		header_row.name = "Header"
-		header_row.alignment = BoxContainer.ALIGNMENT_BEGIN
-		header_row.add_theme_constant_override("separation", 6)
-		column.add_child(header_row)
-
-	var title := Label.new()
-	title.name = "Header_%s" % header_text
-	title.text = header_text
-	title.custom_minimum_size = Vector2(PANEL_WIDTH, 0)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	header_row.add_child(title)
-	return title
+func _rows() -> Array[HBoxContainer]:
+	var found: Array[HBoxContainer] = []
+	if not row_template:
+		return found
+	for child in row_template.get_parent().get_children():
+		var row := child as HBoxContainer
+		if row and row != row_template:
+			found.append(row)
+	return found
 
 
-## 一个员工一列 HBoxContainer：名字 Label + 各个状态按钮
-func _add_employee_row(employee: Employee) -> void:
-	var row := HBoxContainer.new()
-	row.name = "Row_%s" % _safe_name(employee.name)
-	row.alignment = BoxContainer.ALIGNMENT_BEGIN
-	row.add_theme_constant_override("separation", 6)
-	column.add_child(row)
-
-	row.add_child(_make_name_label(employee))
-	_build_state_cells(row, employee)
+func _row_employee(row: HBoxContainer) -> Employee:
+	if not row.has_meta("employee"):
+		return null
+	return row.get_meta("employee") as Employee
 
 
-func _make_name_label(employee: Employee) -> Label:
-	var label := Label.new()
-	label.name = "Name_%s" % _safe_name(employee.name)
-	label.text = employee.employee_name
-	label.custom_minimum_size = Vector2(PANEL_WIDTH, 0)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return label
+func _row_for(employee: Employee) -> HBoxContainer:
+	for row in _rows():
+		if row.get_meta("pending_deletion", false):
+			continue
+		if _row_employee(row) == employee:
+			return row
+	return null
 
 
-func _build_state_cells(row: HBoxContainer, employee: Employee) -> void:
-	var manager := employee.employee_state_manager
-	if not manager:
-		row.add_child(_make_note("员工没接 StateManager"))
+func _fill_row(row: HBoxContainer, employee: Employee) -> void:
+	row.set_meta("employee", employee)
+	row.name = ROW_PREFIX + _safe_name(employee.employee_name)
+
+	var name_label := row.get_node_or_null("NameLabel") as Label
+	if name_label:
+		name_label.text = employee.employee_name
+
+	var button_host := row.get_node_or_null("StateButtons") as HBoxContainer
+	if not button_host:
 		return
 
-	var states := _state_nodes(manager)
-	if states.is_empty():
-		row.add_child(_make_note("没有状态子节点"))
+	var states := _state_nodes(employee.employee_state_manager)
+
+	# 现有按钮已经和状态列表对得上就复用，不要每帧重建按钮
+	var existing: Array[Button] = []
+	for child in button_host.get_children():
+		var button := child as Button
+		if button and button != button_template:
+			existing.append(button)
+	if _buttons_match(existing, states):
+		_buttons[employee] = existing
 		return
+
+	for button in existing:
+		button_host.remove_child(button)
+		button.queue_free()
 
 	var buttons: Array[Button] = []
 	for state in states:
-		buttons.append(_make_state_button(row, employee, state))
+		buttons.append(_spawn_button(button_host, employee, state))
 	_buttons[employee] = buttons
 
 
-func _make_state_button(row: HBoxContainer, employee: Employee, state: EmployeeState) -> Button:
-	var button := Button.new()
-	button.name = "State_%s" % _safe_name(state.name)
+func _buttons_match(buttons: Array[Button], states: Array[EmployeeState]) -> bool:
+	if buttons.size() != states.size():
+		return false
+	for i in range(buttons.size()):
+		if buttons[i].get_meta("state", null) != states[i]:
+			return false
+	return true
+
+
+func _spawn_button(host: HBoxContainer, employee: Employee, state: EmployeeState) -> Button:
+	var button := button_template.duplicate() as Button
+	button.name = _safe_name(state.name)
 	button.text = state_name_text(state)
-	button.toggle_mode = true
-	button.custom_minimum_size = Vector2(PANEL_WIDTH, 0)
+	button.visible = true
 	button.set_meta("employee", employee)
 	button.set_meta("state", state)
 	button.pressed.connect(_on_state_button_pressed.bind(employee, state))
 	button.gui_input.connect(_on_state_button_gui_input)
-	row.add_child(button)
+	host.add_child(button)
 	return button
 
 
-func _make_note(text: String) -> Label:
-	var label := Label.new()
-	label.text = text
-	label.custom_minimum_size = Vector2(PANEL_WIDTH, 0)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.add_theme_color_override("font_color", Color(1.0, 0.45, 0.45))
-	return label
-
-
-func _clear_row(host: VBoxContainer) -> void:
-	for child in host.get_children():
-		host.remove_child(child)
-		child.queue_free()
-	_buttons.clear()
-
-
-# ---------------------------------------------------------------- 按钮交互
 func _on_state_button_pressed(employee: Employee, state: EmployeeState) -> void:
 	var manager := employee.employee_state_manager
 	if not manager:
@@ -254,6 +272,19 @@ func _style_button(button: Button, is_active: bool) -> void:
 
 
 # ---------------------------------------------------------------- 工具
+## 在 root 下面递归找所有 Employee
+func _find_employees(root: Node) -> Array[Employee]:
+	var found: Array[Employee] = []
+	if not root:
+		return found
+	for child in root.get_children():
+		var employee := child as Employee
+		if employee:
+			found.append(employee)
+		found.append_array(_find_employees(child))
+	return found
+
+
 func _state_nodes(manager: EmployeeStateManager) -> Array[EmployeeState]:
 	var found: Array[EmployeeState] = []
 	if not manager:
@@ -278,7 +309,7 @@ func _on_state_changed(_to_state: EmployeeState) -> void:
 
 func _employee_fingerprints() -> Dictionary:
 	var result := {}
-	for employee in _employees:
+	for employee in _tracked:
 		result[employee] = _state_nodes(employee.employee_state_manager).size()
 	return result
 

@@ -22,8 +22,25 @@ func _ready() -> void:
 		
 
 func start_state_manager() -> void:
+	# 延后一帧再进入初始状态：员工是在场景 _ready 过程中入树的，
+	# 这时导航之类的服务可能还没配置好，立刻寻路会撞上空引用
+	_enter_initial_state.call_deferred()
+
+func _enter_initial_state() -> void:
 	current_state = initial_state
-	current_state.state_enter()
+	if current_state:
+		current_state.state_enter()
+	state_changed.emit(current_state)
+
+## 按状态子节点的名字设置初始状态，给每个员工配不同初始状态用
+func set_initial_state(state_node_name: String) -> bool:
+	if not state_node_name.is_empty():
+		var node := get_node_or_null(NodePath(state_node_name))
+		if node is EmployeeState:
+			initial_state = node
+			return true
+	push_error("EmployeeStateManager: 找不到名为 %s 的状态子节点" % state_node_name)
+	return false
 
 func _physics_process(delta: float) -> void:
 	if current_state:

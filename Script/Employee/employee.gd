@@ -38,7 +38,7 @@ func navigating_process(delta: float) -> void:
 
 func _ready() -> void:
 	if not employee_state_manager:
-		push_error("Employee: employee_manager 未设置")
+		push_error("Employee: employee_state_manager 未设置")
 		return
 	employee_state_manager.start_state_manager()
 

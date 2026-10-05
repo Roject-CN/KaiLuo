@@ -1,6 +1,65 @@
-[gd_scene format=3 uid="uid://c8j4mv2qx7pnr"]
+[gd_scene load_steps=2 format=3 uid="uid://c8j4mv2qx7pnr"]
 
 [ext_resource type="Script" path="res://Script/Debug/employee_state_debug_panel.gd" id="1_panel"]
 
-[node name="EmployeeStateDebugPanel" type="CanvasLayer"]
+[node name="DebugPanel" type="CanvasLayer"]
+layer = 100
 script = ExtResource("1_panel")
+
+[node name="Margin" type="MarginContainer" parent="."]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 8.0
+offset_bottom = 8.0
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 6
+
+[node name="Panel" type="PanelContainer" parent="Margin"]
+
+[node name="Column" type="VBoxContainer" parent="Margin/Panel"]
+theme_override_constants/separation = 4
+
+[node name="Header" type="HBoxContainer" parent="Margin/Panel/Column"]
+theme_override_constants/separation = 6
+
+[node name="NameColumn" type="VBoxContainer" parent="Margin/Panel/Column/Header"]
+theme_override_constants/separation = 4
+
+[node name="HeaderLabel" type="Label" parent="Margin/Panel/Column/Header/NameColumn"]
+custom_minimum_size = Vector2(176, 0)
+layout_mode = 2
+text = "员工"
+horizontal_alignment = 1
+
+[node name="StateColumn" type="VBoxContainer" parent="Margin/Panel/Column/Header"]
+theme_override_constants/separation = 4
+
+[node name="HeaderLabel" type="Label" parent="Margin/Panel/Column/Header/StateColumn"]
+custom_minimum_size = Vector2(176, 0)
+layout_mode = 2
+text = "状态"
+horizontal_alignment = 1
+
+[node name="RowTemplate" type="HBoxContainer" parent="Margin/Panel/Column"]
+visible = false
+theme_override_constants/separation = 6
+
+[node name="NameLabel" type="Label" parent="Margin/Panel/Column/RowTemplate"]
+custom_minimum_size = Vector2(176, 0)
+layout_mode = 2
+text = "员工"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="StateButtons" type="HBoxContainer" parent="Margin/Panel/Column/RowTemplate"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="StateButton" type="Button" parent="Margin/Panel/Column/RowTemplate/StateButtons"]
+custom_minimum_size = Vector2(176, 0)
+layout_mode = 2
+toggle_mode = true
+text = "状态"

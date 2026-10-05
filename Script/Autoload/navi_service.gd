@@ -14,6 +14,10 @@ func set_up(navi : TileMapLayer, path : TileMapLayer) -> void:
 		push_error("NavService: navigation_layer 未设置")
 		return
 
+	if not navigation_layer.tile_set:
+		push_error("NavService: navigation_layer 没有设置 tile_set，无法建立导航栅格")
+		return
+
 	astar.region = navigation_layer.get_used_rect()
 	astar.cell_size = Vector2(navigation_layer.tile_set.tile_size)
 	astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
