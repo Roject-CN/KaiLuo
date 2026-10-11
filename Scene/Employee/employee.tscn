@@ -5,10 +5,20 @@
 [ext_resource type="Script" uid="uid://bsnq2ptqd8pug" path="res://Script/Employee/State/employee_statemanager.gd" id="3_h6770"]
 [ext_resource type="Script" uid="uid://cg3n2211ffo84" path="res://Script/Employee/State/go_work.gd" id="4_1cihl"]
 [ext_resource type="Script" uid="uid://ck867qh8i584f" path="res://Script/Employee/State/off_work.gd" id="5_jexqk"]
+[ext_resource type="Script" uid="uid://druu0anckbu87" path="res://Script/Employee/collide.gd" id="6_jexqk"]
 
-[node name="Employee" type="Node2D" unique_id=875372456 node_paths=PackedStringArray("employee_state_manager")]
+[sub_resource type="LabelSettings" id="LabelSettings_ufgfk"]
+font_size = 8
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_ufgfk"]
+radius = 7.0
+
+[node name="Employee" type="Node2D" unique_id=875372456 node_paths=PackedStringArray("employee_state_manager", "timer", "label")]
 script = ExtResource("1_jxkjj")
+speed = 50.0
 employee_state_manager = NodePath("EmployeeStateManager")
+timer = NodePath("Timer")
+label = NodePath("Label")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=895572275]
 position = Vector2(0, -12)
@@ -29,3 +39,32 @@ metadata/_custom_type_script = "uid://7dlgg7a5dgmr"
 script = ExtResource("5_jexqk")
 state_name = 1
 metadata/_custom_type_script = "uid://7dlgg7a5dgmr"
+
+[node name="Timer" type="Timer" parent="." unique_id=318373445]
+one_shot = true
+
+[node name="Label" type="Label" parent="." unique_id=1979200815]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -20.0
+offset_top = -33.0
+offset_right = 20.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 0
+text = "员工:x"
+label_settings = SubResource("LabelSettings_ufgfk")
+horizontal_alignment = 1
+
+[node name="EmployeeArea2D" type="Area2D" parent="." unique_id=1651960462 node_paths=PackedStringArray("employee")]
+script = ExtResource("6_jexqk")
+employee = NodePath("..")
+push_strength = 10.0
+debug_draw = true
+metadata/_custom_type_script = "uid://druu0anckbu87"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="EmployeeArea2D" unique_id=2045963524]
+shape = SubResource("CircleShape2D_ufgfk")

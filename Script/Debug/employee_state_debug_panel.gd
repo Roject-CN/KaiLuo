@@ -253,26 +253,22 @@ func _spawn_button(host: HBoxContainer, employee: Employee, state: EmployeeState
 	button.visible = true
 	button.set_meta("employee", employee)
 	button.set_meta("state", state)
-	button.pressed.connect(_on_state_button_pressed.bind(employee, state))
-	button.gui_input.connect(_on_state_button_gui_input)
+	button.set_meta("state_name", state.state_name)
+	# 绑的是枚举值（不是状态对象）：新接口 transition() 收的是 EmployeeState.STATE
+	button.pressed.connect(_on_state_button_pressed.bind(employee, state.state_name))
 	host.add_child(button)
 	return button
 
 
-func _on_state_button_pressed(employee: Employee, state: EmployeeState) -> void:
+## state_name 是 EmployeeState.STATE 枚举值，新接口 transition() 收的就是它
+func _on_state_button_pressed(employee: Employee, state_name: EmployeeState.STATE) -> void:
 	var manager := employee.employee_state_manager
 	if not manager:
 		return
-	manager.transition(state)
+	manager.transition(state_name)
 	_update_highlight()
 
 
-func _on_state_button_gui_input(event: InputEvent) -> void:
-	# 面板里的鼠标事件到此为止，别让测试场景的“点击导航”把它当成场景点击
-	if event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
-		var viewport := get_viewport()
-		if viewport:
-			viewport.set_input_as_handled()
 
 
 # ---------------------------------------------------------------- 高亮

@@ -1,12 +1,12 @@
-[gd_scene load_steps=2 format=3 uid="uid://c8j4mv2qx7pnr"]
+[gd_scene format=3 uid="uid://c8j4mv2qx7pnr"]
 
-[ext_resource type="Script" path="res://Script/Debug/employee_state_debug_panel.gd" id="1_panel"]
+[ext_resource type="Script" uid="uid://gvyad1i10w3r" path="res://Script/Debug/employee_state_debug_panel.gd" id="1_panel"]
 
-[node name="DebugPanel" type="CanvasLayer"]
+[node name="DebugPanel" type="CanvasLayer" unique_id=1174788856]
 layer = 100
 script = ExtResource("1_panel")
 
-[node name="Margin" type="MarginContainer" parent="."]
+[node name="Margin" type="MarginContainer" parent="." unique_id=464970202]
 offset_left = 8.0
 offset_top = 8.0
 offset_right = 8.0
@@ -16,16 +16,19 @@ theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 6
 
-[node name="Panel" type="PanelContainer" parent="Margin"]
+[node name="Panel" type="PanelContainer" parent="Margin" unique_id=1069285279]
+layout_mode = 2
 
-[node name="Column" type="VBoxContainer" parent="Margin/Panel"]
+[node name="Column" type="VBoxContainer" parent="Margin/Panel" unique_id=1038916202]
+layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="RowTemplate" type="HBoxContainer" parent="Margin/Panel/Column"]
+[node name="RowTemplate" type="HBoxContainer" parent="Margin/Panel/Column" unique_id=848925208]
 visible = false
+layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="NameLabel" type="Label" parent="Margin/Panel/Column/RowTemplate"]
+[node name="NameLabel" type="Label" parent="Margin/Panel/Column/RowTemplate" unique_id=1680404514]
 custom_minimum_size = Vector2(176, 0)
 layout_mode = 2
 text = "员工"
@@ -33,11 +36,11 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="StateButtons" type="HBoxContainer" parent="Margin/Panel/Column/RowTemplate"]
+[node name="StateButtons" type="HBoxContainer" parent="Margin/Panel/Column/RowTemplate" unique_id=1744797131]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="StateButton" type="Button" parent="Margin/Panel/Column/RowTemplate/StateButtons"]
+[node name="StateButton" type="Button" parent="Margin/Panel/Column/RowTemplate/StateButtons" unique_id=878597638]
 custom_minimum_size = Vector2(176, 0)
 layout_mode = 2
 toggle_mode = true

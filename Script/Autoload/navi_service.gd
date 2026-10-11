@@ -19,7 +19,7 @@ func set_up(navi : TileMapLayer, path : TileMapLayer) -> void:
 
 	astar.region = navigation_layer.get_used_rect()
 	astar.cell_size = Vector2(navigation_layer.tile_set.tile_size)
-	astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
+	astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_NEVER
 	astar.update()
 
 	#把没有tile的部分设置为实心，不允许

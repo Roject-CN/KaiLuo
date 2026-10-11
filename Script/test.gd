@@ -3,6 +3,7 @@ extends Node2D
 @export var navigation_layer : TileMapLayer
 @export var path_layer: TileMapLayer
 @export var employee_manager : Node2D
+@export var location_manager : LocationManager
 @export var spawn_marker : Marker2D
 @export var work_marker : Marker2D
 
@@ -30,9 +31,8 @@ func _employees() -> Array[Employee]:
 			found.append(employee)
 	return found
 
-func _physics_process(_delta: float) -> void:
-	if not Input.is_action_just_pressed("left_mouse"):
-		return
-	for employee in _employees():
-		var world_path := NaviService.find_world_path(employee.global_position, navigation_layer.get_local_mouse_position())
-		employee.navigate(world_path)
+#func _physics_process(_delta: float) -> void:
+	#if not Input.is_action_just_pressed("left_mouse"):
+		#return
+	#for employee in _employees():
+		#employee.navigate(navigation_layer.get_global_mouse_position())
