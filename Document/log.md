@@ -107,3 +107,7 @@
 - `Scene/Autoload/ChatService.tscn`：编辑器保存时补齐了场景与脚本的 uid、节点的 unique_id，内容无变化。
 - `Scene/Employee/employee.tscn`：`ChatLabel` 调整了尺寸/位置与垂直对齐（-67~67 / -46~-22，vertical_alignment = 2）；
   其中 `text = "xxx"` 仍是调试占位文字，等下一次改动时清空。
+
+## 2026-10-18 文档修正
+
+- `Project.md`：「得到拥护同意」→「得到用户同意」，并补上文件末尾换行。
