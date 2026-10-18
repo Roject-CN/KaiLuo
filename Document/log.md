@@ -69,3 +69,20 @@
   - T4.0 a=「不过还有活没干完。」
   - T5.6 b=「唉，别提了。」
 - 每句到时消失、下一句换人；T6.4 会话结束，双方回 GoWork，气泡清空。
+
+## 2026-10-18 chat_service.gd 移入 ChatService 目录 + 会合点改为按最小距离选格
+
+### 1. 文件位置
+- `Script/Autoload/chat_service.gd` → `Script/Autoload/ChatService/chat_service.gd`（含 .uid，用 git mv 保留历史）。
+- `Scene/Autoload/ChatService.tscn` 的 ext_resource 路径同步更新。
+
+### 2. 会合点：从「对方格子的邻居」改为「满足最小距离的邻居格」
+- 原因：原实现只取 8 个邻居里第一个可走的格子。对方站在工位标记上（不在格子中心），
+  相邻格中心实测只离 11px；而精灵是 16×16 缩放到 1.5 倍 = 24px 宽，于是看起来是叠在一起。
+- `NaviService.find_stand_cell(target, min_distance)`：先在相邻一圈里找，距离不够再退到外圈；
+  同一圈取「满足 min_distance 的最近一格」，保证两个人停在不同的格子、且不会贴脸。
+- `PartnerFinder.min_stand_distance`（导出，默认 16 = 一格）：想让两人更开，把它调成 24/32 即可，不用改代码。
+
+### 验证
+- 无头实测：会合点距离从 11.0px 提升到 18.6px（a 在 (216,248)，b 在 (231,237)，格 (13,15) vs (14,14)）。
+- 聊天流程本身不受影响：仍能进入 CHATTING 并按台词交替显示。

@@ -9,19 +9,6 @@ var astar := AStarGrid2D.new()
 # 本帧要绘制的路径集合，_process 里统一画
 var _pending_paths: Array = []   # Array[Array[Vector2i]]
 
-## 围绕目标格按固定顺序找第一个可走的格子。
-## 顺序：下 → 右 → 上 → 左 → 右下 → 右上 → 左上 → 左下。
-## 找到返回 Vector2i，找不到返回 null。
-const _STAND_OFFSETS: Array[Vector2i] = [
-	Vector2i(0, 1),
-	Vector2i(1, 0),
-	Vector2i(0, -1),
-	Vector2i(-1, 0),
-	Vector2i(1, 1),
-	Vector2i(1, -1),
-	Vector2i(-1, -1),
-	Vector2i(-1, 1),
-]
 
 func set_up(navi : TileMapLayer, path : TileMapLayer) -> void:
 	navigation_layer = navi
@@ -126,10 +113,29 @@ func has_path(from_world: Vector2, to_world: Vector2) -> bool:
 		return false
 	return not astar.get_id_path(from_cell, to_cell).is_empty()
 
-func find_stand_cell(target_world: Vector2) -> Variant:
+## 在目标格周围找一格能站人的地方。
+## min_distance：候选格中心到 target_world 的最小距离（像素）。
+## 用途：两个人聊天时别贴在一起；调用方可以按精灵宽度给出下限。
+## 先找相邻一圈，都太近再退到外圈；同一圈里取满足距离的最近一格。
+func find_stand_cell(target_world: Vector2, min_distance: float = 0.0) -> Variant:
 	var center := world_to_cell(target_world)
-	for offset in _STAND_OFFSETS:
-		var cell := center + offset
-		if is_walkable(cell):
-			return cell
+
+	for ring in range(1, 3):
+		var best: Variant = null
+		var best_distance := INF
+		for dx in range(-ring, ring + 1):
+			for dy in range(-ring, ring + 1):
+				if maxi(absi(dx), absi(dy)) != ring:
+					continue
+				var cell := center + Vector2i(dx, dy)
+				if not is_walkable(cell):
+					continue
+				var distance := cell_to_world(cell).distance_to(target_world)
+				if distance < min_distance or distance >= best_distance:
+					continue
+				best_distance = distance
+				best = cell
+		if best != null:
+			return best
+
 	return null

@@ -1,6 +1,6 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://Script/Autoload/chat_service.gd" id="1_root"]
+[ext_resource type="Script" path="res://Script/Autoload/ChatService/chat_service.gd" id="1_root"]
 [ext_resource type="Script" path="res://Script/Autoload/ChatService/partner_finder.gd" id="2_finder"]
 [ext_resource type="Script" path="res://Script/Autoload/ChatService/session_book.gd" id="3_book"]
 [ext_resource type="Script" path="res://Script/Autoload/ChatService/dialogue_runner.gd" id="4_runner"]
