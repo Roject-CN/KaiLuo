@@ -46,3 +46,26 @@
 ### 验证
 - `godot --headless --quit-after 240`：exit 0，无解析/运行错误。
 - 未验证：聊天链路仍没有触发器，气泡效果需要手动切到 GOCHAT 或接入时间系统后观察。
+
+## 2026-10-18 ChatService 重构：脚本 Autoload → 场景 Autoload + 4 个子节点
+
+### 结构
+- `Scene/Autoload/ChatService.tscn`
+  - `PartnerFinder`  找搭档 + 会合点（LocationManager / NaviService）
+  - `SessionBook`    会话登记与占用表
+  - `DialogueRunner` 台词推进与计时（只发信号）
+  - `ChatPresenter`  把台词写到员工头顶气泡（只订阅信号）
+- 根节点 `Script/Autoload/chat_service.gd` 只保留对外 API + 依赖注入 + 信号接线。
+- `ChatSession`（`Script/Autoload/ChatService/chat_session.gd`）只存数据；`Session` 类型引用全部改为 `ChatSession`。
+
+### 工程配置
+- `project.godot`：`ChatService` 由脚本 uid 改为场景路径 `*res://Scene/Autoload/ChatService.tscn`。
+
+### 验证（无头集成测试，临时探针已删除）
+- 两名员工走到工位并被 Location 占用 → 触发 GOCHAT → 走到会合点 → 进入 CHATTING。
+- 台词按「偶数下标 a / 奇数下标 b」交替出现在各自头顶气泡：
+  - T1.6 a=「今天天气不错啊。」
+  - T2.8 b=「是啊，适合出去走走。」
+  - T4.0 a=「不过还有活没干完。」
+  - T5.6 b=「唉，别提了。」
+- 每句到时消失、下一句换人；T6.4 会话结束，双方回 GoWork，气泡清空。

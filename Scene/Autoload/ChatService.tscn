@@ -1,0 +1,22 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Script/Autoload/chat_service.gd" id="1_root"]
+[ext_resource type="Script" path="res://Script/Autoload/ChatService/partner_finder.gd" id="2_finder"]
+[ext_resource type="Script" path="res://Script/Autoload/ChatService/session_book.gd" id="3_book"]
+[ext_resource type="Script" path="res://Script/Autoload/ChatService/dialogue_runner.gd" id="4_runner"]
+[ext_resource type="Script" path="res://Script/Autoload/ChatService/chat_presenter.gd" id="5_presenter"]
+
+[node name="ChatService" type="Node"]
+script = ExtResource("1_root")
+
+[node name="PartnerFinder" type="Node" parent="."]
+script = ExtResource("2_finder")
+
+[node name="SessionBook" type="Node" parent="."]
+script = ExtResource("3_book")
+
+[node name="DialogueRunner" type="Node" parent="."]
+script = ExtResource("4_runner")
+
+[node name="ChatPresenter" type="Node" parent="."]
+script = ExtResource("5_presenter")
