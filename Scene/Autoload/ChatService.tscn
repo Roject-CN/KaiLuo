@@ -1,22 +1,22 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://c406ckllwn8v2"]
 
-[ext_resource type="Script" path="res://Script/Autoload/ChatService/chat_service.gd" id="1_root"]
-[ext_resource type="Script" path="res://Script/Autoload/ChatService/partner_finder.gd" id="2_finder"]
-[ext_resource type="Script" path="res://Script/Autoload/ChatService/session_book.gd" id="3_book"]
-[ext_resource type="Script" path="res://Script/Autoload/ChatService/dialogue_runner.gd" id="4_runner"]
-[ext_resource type="Script" path="res://Script/Autoload/ChatService/chat_presenter.gd" id="5_presenter"]
+[ext_resource type="Script" uid="uid://63402krchory" path="res://Script/Autoload/ChatService/chat_service.gd" id="1_root"]
+[ext_resource type="Script" uid="uid://1lp1qejdwij" path="res://Script/Autoload/ChatService/partner_finder.gd" id="2_finder"]
+[ext_resource type="Script" uid="uid://ct3c4dn5atprs" path="res://Script/Autoload/ChatService/session_book.gd" id="3_book"]
+[ext_resource type="Script" uid="uid://bdkq5gu7lx211" path="res://Script/Autoload/ChatService/dialogue_runner.gd" id="4_runner"]
+[ext_resource type="Script" uid="uid://dihho4phpvhak" path="res://Script/Autoload/ChatService/chat_presenter.gd" id="5_presenter"]
 
-[node name="ChatService" type="Node"]
+[node name="ChatService" type="Node" unique_id=802401098]
 script = ExtResource("1_root")
 
-[node name="PartnerFinder" type="Node" parent="."]
+[node name="PartnerFinder" type="Node" parent="." unique_id=695051470]
 script = ExtResource("2_finder")
 
-[node name="SessionBook" type="Node" parent="."]
+[node name="SessionBook" type="Node" parent="." unique_id=1592227302]
 script = ExtResource("3_book")
 
-[node name="DialogueRunner" type="Node" parent="."]
+[node name="DialogueRunner" type="Node" parent="." unique_id=1591375332]
 script = ExtResource("4_runner")
 
-[node name="ChatPresenter" type="Node" parent="."]
+[node name="ChatPresenter" type="Node" parent="." unique_id=1949062308]
 script = ExtResource("5_presenter")

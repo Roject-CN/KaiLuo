@@ -100,3 +100,10 @@
 ### 实测
 - 会合点 (232,264)，对方 (231,237)，距离 27.0px，格 (14,16) vs (14,14)。
 - 对比：回退前默认是 11.0px（叠在一起），上一版环搜索是 18.6px。
+
+## 2026-10-18 整理：提交未提交的文档与场景改动
+
+- `Project.md`：补充项目定位、目录结构与工作方式（先方案后改码、改完 commit + 写 log）。
+- `Scene/Autoload/ChatService.tscn`：编辑器保存时补齐了场景与脚本的 uid、节点的 unique_id，内容无变化。
+- `Scene/Employee/employee.tscn`：`ChatLabel` 调整了尺寸/位置与垂直对齐（-67~67 / -46~-22，vertical_alignment = 2）；
+  其中 `text = "xxx"` 仍是调试占位文字，等下一次改动时清空。
