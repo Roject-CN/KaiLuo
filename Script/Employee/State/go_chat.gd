@@ -1,6 +1,6 @@
 extends EmployeeState
 
-var _session: ChatService.Session = null
+var _session: ChatSession = null
 
 func state_enter() -> void:
 	_session = ChatService.request(employee)
