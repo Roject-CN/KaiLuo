@@ -49,6 +49,18 @@ func find_available(type: Location.TYPE, from_world: Vector2) -> Location:
 
 
 
+## 找最近的同类点位。不跳过「已被占用」的点位——排队的前提就是占着也能过去。
+func find_nearest(type: Location.TYPE, from_world: Vector2) -> Location:
+	var best: Location = null
+	var best_distance := INF
+	for loc in get_by_type(type):
+		var distance := from_world.distance_squared_to(loc.global_position)
+		if distance < best_distance:
+			best_distance = distance
+			best = loc
+	return best
+
+
 ## 出生点：直接查 SPAWN_PLACE 类型的第一个
 func assign_spawn_location() -> Location:
 	var spawns := get_by_type(Location.TYPE.SPAWN_PLACE)

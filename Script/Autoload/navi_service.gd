@@ -128,15 +128,18 @@ func has_path(from_world: Vector2, to_world: Vector2) -> bool:
 
 ## extra_cells：在选中的方向上再往外推几格，用来拉开两个人聊天时的间距。
 ## 外圈格不可走时，退回原来那一格（保证总能站住）。
-func find_stand_cell(target_world: Vector2, extra_cells: int = 0) -> Variant:
+## exclude：这些格子不参与选择（排队时用来避开别人已经占住的等待位）。
+func find_stand_cell(target_world: Vector2, extra_cells: int = 0, exclude: Array = []) -> Variant:
 	var center := world_to_cell(target_world)
 	for offset in _STAND_OFFSETS:
 		var cell := center + offset
+		if cell in exclude:
+			continue
 		if not is_walkable(cell):
 			continue
 		if extra_cells > 0:
 			var farther := cell + offset * extra_cells
-			if is_walkable(farther):
+			if is_walkable(farther) and farther not in exclude:
 				return farther
 		return cell
 	return null

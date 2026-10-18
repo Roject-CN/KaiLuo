@@ -111,3 +111,22 @@
 ## 2026-10-18 文档修正
 
 - `Project.md`：「得到拥护同意」→「得到用户同意」，并补上文件末尾换行。
+
+## 2026-10-18 占用改为状态显式设置；新增排队 API
+
+### 1. Location：删掉 Area2D 自动占用，改为显式 API
+- 删：`_area` / `_candidates` / `_stay_timer` / `_first_candidate` / `occupy_delay` / `area_radius` /
+  `_physics_process` 里的自动占用、`occupy()` / `release()`。
+- 新增：`begin_use(employee)` / `end_use()` / `is_busy()`，以及 `freed` 信号。占用只有状态机一个真相源。
+- 新增队列：`queue_join` / `queue_leave` / `is_first` / `queue_index` / `queue_members`（先来先服务）。
+
+### 2. GoWork：到达占用、离开释放
+- 到达工位时 `work_place.begin_use(self)`，`state_exit` 时释放。
+- 聊天选搭档仍然读 `who_occupy`，现在拿到的就是「真的站在工位上的人」，不再有 1 秒延迟和 12px 半径误差。
+
+### 3. 配套
+- `LocationManager.find_nearest(type, from)`：不跳过被占用的点位（排队需要）。
+- `NaviService.find_stand_cell()` 增加 `exclude` 参数：排队选等待位时可以避开别人已占的格子。
+
+### 验证
+- 无头启动无错误；12 秒后两个工位分别被员工1/员工2占用，`find_partner(null)` 能正常找到搭档。
