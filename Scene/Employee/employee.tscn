@@ -9,8 +9,8 @@
 [ext_resource type="Script" uid="uid://bvd5tsh5g7f21" path="res://Script/Employee/State/go_chat.gd" id="6_sgq72"]
 [ext_resource type="Script" uid="uid://7dlgg7a5dgmr" path="res://Script/Employee/State/employee_state.gd" id="7_bsshk"]
 [ext_resource type="Script" uid="uid://gjq7xdvlvkwg" path="res://Script/Employee/State/chatting.gd" id="8_ibk43"]
-[ext_resource type="Script" path="res://Script/Employee/State/use_rest.gd" id="9_userest"]
-[ext_resource type="Script" path="res://Script/Employee/State/report.gd" id="10_report"]
+[ext_resource type="Script" path="res://Script/Employee/State/go_rest.gd" id="9_gorest"]
+[ext_resource type="Script" path="res://Script/Employee/State/go_report.gd" id="10_goreport"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_ufgfk"]
 font_size = 8
@@ -60,12 +60,12 @@ script = ExtResource("8_ibk43")
 state_name = 4
 metadata/_custom_type_script = "uid://7dlgg7a5dgmr"
 
-[node name="UseRest" type="Node" parent="EmployeeStateManager"]
-script = ExtResource("9_userest")
+[node name="GoRest" type="Node" parent="EmployeeStateManager"]
+script = ExtResource("9_gorest")
 state_name = 5
 
-[node name="Report" type="Node" parent="EmployeeStateManager"]
-script = ExtResource("10_report")
+[node name="GoReport" type="Node" parent="EmployeeStateManager"]
+script = ExtResource("10_goreport")
 state_name = 6
 
 

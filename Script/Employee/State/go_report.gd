@@ -64,6 +64,6 @@ func _disconnect_navigation() -> void:
 func _find_boss() -> Location:
 	var lm := get_tree().get_first_node_in_group("location_manager") as LocationManager
 	if lm == null:
-		push_error("Report: 找不到 LocationManager")
+		push_error("GoReport: 找不到 LocationManager")
 		return null
 	return lm.find_nearest(Location.TYPE.BOSS_PLACE, employee.global_position)

@@ -94,7 +94,7 @@ func _abort_back_to_work() -> void:
 func _find_rest() -> Location:
 	var lm := get_tree().get_first_node_in_group("location_manager") as LocationManager
 	if lm == null:
-		push_error("UseRest: 找不到 LocationManager")
+		push_error("GoRest: 找不到 LocationManager")
 		return null
 	return lm.find_nearest(Location.TYPE.REST_PLACE, employee.global_position)
 

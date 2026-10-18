@@ -22,6 +22,13 @@ class_name EmployeeDebugPanel
 
 const ROW_PREFIX := "Row_"
 
+## 名字列按「几个汉字」的宽度算
+const NAME_CHARS := 4
+## 列间距（与场景里 HBoxContainer 的 separation 一致）
+const COLUMN_SEPARATION := 6.0
+## 留给面板内边距和左右 margin 的宽度
+const LAYOUT_RESERVED := 48.0
+
 ## 当前状态按钮的高亮底色
 const HIGHLIGHT_BG := Color(0.29, 0.56, 1.0, 0.40)
 const COLOR_DARK_TEXT := Color(1, 1, 1)
@@ -33,15 +40,14 @@ const COLOR_LIGHT_TEXT := Color(0.12, 0.12, 0.12)
 @onready var name_label_template : Label = $Margin/Panel/Column/RowTemplate/NameLabel
 @onready var button_template : Button = $Margin/Panel/Column/RowTemplate/StateButtons/StateButton
 
-## 按钮文字。留空则按下面的默认值；以后加状态只改这里，不用动生产代码。
+## 白名单：面板只显示这里列出的状态，顺序就是列的排列顺序。
+## 中间状态（等待 / 聊天中）不在这里，因此不会出现在面板上。
 @export var state_labels : Dictionary = {
 	EmployeeState.STATE.GOWORK: "上班",
 	EmployeeState.STATE.OFFWORK: "下班",
 	EmployeeState.STATE.GOCHAT: "去聊天",
-	EmployeeState.STATE.WAITING: "等待",
-	EmployeeState.STATE.CHATTING: "聊天",
-	EmployeeState.STATE.USE_REST: "休息",
-	EmployeeState.STATE.REPORT: "汇报",
+	EmployeeState.STATE.GO_REST: "休息",
+	EmployeeState.STATE.GO_REPORT: "汇报",
 }
 
 var _tracked: Array[Employee] = []          # 已登记的员工
@@ -50,6 +56,9 @@ var _fingerprints: Dictionary = {}          # Employee -> 状态子节点数量
 var _last_state: Dictionary = {}            # Employee -> 上次看到的状态（用于轮询比对）
 ## 重建期间抑制 refresh 重入。否则 rebuild -> refresh -> rebuild 会无限递归。
 var _mutating := false
+## 运行时算出的列宽
+var _name_width := 0.0
+var _button_width := 0.0
 
 
 func _ready() -> void:
@@ -65,11 +74,16 @@ func _ready() -> void:
 
 	# 面板往往比测试脚本先 _ready（子节点在前），这时场景根还没挂上，
 	# 等一帧再找员工，那时场景已经完整、员工的 _ready 也都跑完了
+	get_viewport().size_changed.connect(_on_viewport_resized)
 	if get_tree().current_scene:
 		_tracked = _collect_employees()
 		rebuild()
 	else:
 		_deferred_start.call_deferred()
+
+
+func _on_viewport_resized() -> void:
+	rebuild()
 
 
 func _deferred_start() -> void:
@@ -141,15 +155,16 @@ func rebuild() -> void:
 	if not row_template or _mutating:
 		return
 	_mutating = true
+	_apply_layout_metrics()
 
 	# 1) 清掉上一次建出来的行与表头：它们都是运行时生成的，
 	#    场景里那份只是模板（隐藏的 RowTemplate）
 	_clear_column()
 	# 一个表头行里，每个格子对应一列
 	var header_row := _make_header()
-	_add_header_cell(header_row, "员工")
+	_add_header_cell(header_row, "员工", _name_width)
 	for i in range(_state_column_count()):
-		_add_header_cell(header_row, state_name_text(_state_column_state(i)))
+		_add_header_cell(header_row, state_name_text(_state_column_state(i)), _button_width)
 
 	# 2) 每个员工一行：克隆模板
 	for employee in _tracked:
@@ -172,9 +187,10 @@ func _make_header() -> HBoxContainer:
 	return header_row
 
 
-func _add_header_cell(header_row: HBoxContainer, text: String) -> void:
+func _add_header_cell(header_row: HBoxContainer, text: String, width: float) -> void:
 	var title := name_label_template.duplicate() as Label
 	title.name = _unique_name(header_row, "HeaderLabel")
+	title.custom_minimum_size = Vector2(width, 0)
 	title.text = text
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -237,6 +253,7 @@ func _fill_row(row: HBoxContainer, employee: Employee) -> void:
 
 	var name_label := row.get_node_or_null("NameLabel") as Label
 	if name_label:
+		name_label.custom_minimum_size = Vector2(_name_width, 0)
 		name_label.text = employee.employee_name
 
 	var button_host := row.get_node_or_null("StateButtons") as HBoxContainer
@@ -253,6 +270,7 @@ func _fill_row(row: HBoxContainer, employee: Employee) -> void:
 
 func _spawn_button(host: HBoxContainer, employee: Employee, state: EmployeeState) -> Button:
 	var button := button_template.duplicate() as Button
+	button.custom_minimum_size = Vector2(_button_width, 0)
 	button.name = _unique_name(host, _safe_name(state.name))
 	button.text = state_name_text(state)
 	button.visible = true
@@ -309,6 +327,26 @@ func _style_button(button: Button, is_active: bool) -> void:
 		button.add_theme_stylebox_override(state_name, style)
 
 
+## 按当前视口宽度和要显示的列数，实时计算名字列 / 按钮列宽度。
+## 名字列刚好容纳 NAME_CHARS 个汉字；剩下的宽度平分给各状态列。
+func _apply_layout_metrics() -> void:
+	var font := name_label_template.get_theme_font("font")
+	var font_size := name_label_template.get_theme_font_size("font_size")
+	var sample := ""
+	for _i in range(NAME_CHARS):
+		sample += "国"
+	_name_width = font.get_string_size(sample, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x + 12.0
+
+	var count := _state_column_count()
+	if count <= 0:
+		_button_width = 0.0
+		return
+
+	var viewport_width := get_viewport().get_visible_rect().size.x
+	var available := viewport_width - LAYOUT_RESERVED - _name_width - COLUMN_SEPARATION * count
+	_button_width = maxf(64.0, available / float(count))
+
+
 # ---------------------------------------------------------------- 工具
 func _current_state(employee: Employee) -> EmployeeState:
 	var manager := employee.employee_state_manager
@@ -322,7 +360,7 @@ func _state_nodes(manager: EmployeeStateManager) -> Array[EmployeeState]:
 	if not manager:
 		return found
 	for child in manager.get_children():
-		if child is EmployeeState and not found.has(child):
+		if child is EmployeeState and state_labels.has(child.state_name) and not found.has(child):
 			found.append(child)
 	return found
 
