@@ -22,10 +22,18 @@ func state_enter() -> void:
 	employee.navigation_finished.connect(_on_navigation_finished)
 
 	_timer = 0.0
+
+	# 队首且设施空闲：直接去设施，不用先绕到等待位
+	if _location.is_first(employee) and not _location.is_busy():
+		if employee.navigate(_location.global_position):
+			_phase = Phase.TO_USE
+			return
+
 	var wait_cell = NaviService.find_stand_cell(
 		_location.global_position, 0, _wait_exclusions()
 	)
-	if wait_cell == null or not employee.navigate(wait_cell):
+	# find_stand_cell 返回的是格子坐标，导航要的是世界坐标
+	if wait_cell == null or not employee.navigate(NaviService.cell_to_world(wait_cell)):
 		# 没有等待位或者走不过去：原地排队，等轮到自己
 		_phase = Phase.WAITING
 		return
