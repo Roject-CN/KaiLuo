@@ -89,6 +89,7 @@ tile_set = SubResource("TileSet_gatd3")
 tile_set = SubResource("TileSet_q16p7")
 
 [node name="EmployeeManager" type="Node2D" parent="." unique_id=1261291812]
+y_sort_enabled = true
 
 [node name="员工1" parent="EmployeeManager" unique_id=1642210831 instance=ExtResource("5_emp")]
 employee_name = "员工1"
@@ -118,9 +119,3 @@ position = Vector2(231, 237)
 script = ExtResource("5_puuaq")
 type = 1
 metadata/_custom_type_script = "uid://tcwl5su3en25"
-
-[node name="speaking_label" type="Label" parent="." unique_id=862534745 groups=["speaking_label"]]
-offset_left = 305.0
-offset_top = 241.0
-offset_right = 345.0
-offset_bottom = 264.0

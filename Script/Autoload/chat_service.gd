@@ -10,6 +10,7 @@ class Session:
 	var dialogue: Array[String] = []
 	var dialogue_index: int = -1     # -1 = 还没说第一句
 	var line_timer: float = 0.0
+	var speaker: Employee          # 当前正在说话的人（气泡挂在他头上）
 
 # ---------------------------------------------------------------- 常量
 const PHASE_MOVING := 0
@@ -23,7 +24,6 @@ var res1 : = preload("res://Resource/test1.tres")
 
 # ---------------------------------------------------------------- 内部状态
 var _location_manager: LocationManager
-var _speaking_label: Label
 var _sessions: Array[Session] = []
 var _busy: Dictionary = {}    # Employee -> Session
 
@@ -121,9 +121,10 @@ func _end_session(session: Session) -> void:
 	_busy.erase(session.b)
 	_sessions.erase(session)
 
-	var label := _get_speaking_label()
-	if label:
-		label.text = ""
+	# 兜底：打断时气泡可能还挂着
+	_clear_line(session)
+	session.a.hide_chat_line()
+	session.b.hide_chat_line()
 
 	session.a.enter_state(EmployeeState.STATE.GOWORK)
 	session.b.enter_state(EmployeeState.STATE.GOWORK)
@@ -145,6 +146,9 @@ func _tick_dialogue(session: Session, delta: float) -> void:
 
 	session.dialogue_index += 1
 
+	# 这一句的时间到了：先收掉气泡，再决定有没有下一句
+	_clear_line(session)
+
 	# 台词说完了：结束整场会话
 	if session.dialogue_index >= session.dialogue.size():
 		_end_session(session)
@@ -153,24 +157,30 @@ func _tick_dialogue(session: Session, delta: float) -> void:
 	_show_line(session)
 
 
+## 当前这句由谁来说：约定偶数下标 = 发起方 a，奇数下标 = 对方 b
 func _show_line(session: Session) -> void:
 	var line := session.dialogue[session.dialogue_index]
-	var label := _get_speaking_label()
-	if label:
-		if label.text.is_empty():
-			label.text = line
-		else:
-			label.text += "\n" + line
+	var speaker := session.a if session.dialogue_index % 2 == 0 else session.b
+
+	# 换人说话：上一条已在计时结束时收掉，这里只做兜底
+	if session.speaker != null and session.speaker != speaker:
+		session.speaker.hide_chat_line()
+
+	session.speaker = speaker
+	speaker.show_chat_line(line)
 	session.line_timer = max(min_line_duration, line.length() * seconds_per_char)
+
+
+## 收掉当前这句话（推进到下一句、或整场结束时调用）
+func _clear_line(session: Session) -> void:
+	if session.speaker == null:
+		return
+	session.speaker.hide_chat_line()
+	session.speaker = null
+
 
 func _pick_dialogue() -> Array[String]:
 	if dialogue_pool.is_empty():
 		return []
 	var d := dialogue_pool[randi() % dialogue_pool.size()]
 	return d.lines.duplicate()
-
-
-func _get_speaking_label() -> Label:
-	if not is_instance_valid(_speaking_label):
-		_speaking_label = get_tree().get_first_node_in_group("speaking_label") as Label
-	return _speaking_label

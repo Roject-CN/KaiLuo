@@ -26,3 +26,23 @@
 - `godot --headless --path . --quit-after 240`：退出码 0，无 SCRIPT ERROR / Parse Error。
 - 覆盖：脚本编译、场景加载、员工从出生点走到工位（真实跑了 240 帧）。
 - 未覆盖：聊天链路没有触发器（GOCHAT 目前只能由调试面板手动进入），需在接入时间系统或调试入口后再实测。
+
+## 2026-10-18 名字标签下沉 + 头顶对话气泡
+
+### 1. 员工场景（employee.tscn / employee.gd）
+- `Label` 改名 `NameLabel`，从头顶移到脚底（offset 2~14）；导出 `label` 改名 `name_label`。
+- 新增 `ChatLabel`（默认隐藏，位于头顶上方 -54~-30），导出 `chat_label`。
+- Employee 新增两个 API：`show_chat_line(text)` / `hide_chat_line()`。
+
+### 2. 台词显示改到说话人头上（chat_service.gd）
+- 约定「偶数下标 = 发起方 a，奇数下标 = 对方 b」，每句交给说话人自己的气泡。
+- 计时到点先收气泡，再推进下一句，因此下一句自然出现在另一个员工头上。
+- 会话结束/被打断时兜底清掉双方气泡。
+- 删除 test.tscn 的临时 `speaking_label` 节点，以及 ChatService 里按 group 查找 Label 的逻辑。
+
+### 3. 顺带保留
+- test.tscn 的 `EmployeeManager` 保持 `y_sort_enabled = true`（按方案 A 的修复）。
+
+### 验证
+- `godot --headless --quit-after 240`：exit 0，无解析/运行错误。
+- 未验证：聊天链路仍没有触发器，气泡效果需要手动切到 GOCHAT 或接入时间系统后观察。

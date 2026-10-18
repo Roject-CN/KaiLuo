@@ -16,11 +16,12 @@ font_size = 8
 [sub_resource type="CircleShape2D" id="CircleShape2D_ufgfk"]
 radius = 7.0
 
-[node name="Employee" type="Node2D" unique_id=875372456 node_paths=PackedStringArray("employee_state_manager", "label")]
+[node name="Employee" type="Node2D" unique_id=875372456 node_paths=PackedStringArray("employee_state_manager", "name_label", "chat_label")]
 script = ExtResource("1_jxkjj")
 speed = 50.0
 employee_state_manager = NodePath("EmployeeStateManager")
-label = NodePath("Label")
+name_label = NodePath("NameLabel")
+chat_label = NodePath("ChatLabel")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=895572275]
 position = Vector2(0, -12)
@@ -57,19 +58,29 @@ script = ExtResource("8_ibk43")
 state_name = 4
 metadata/_custom_type_script = "uid://7dlgg7a5dgmr"
 
-[node name="Label" type="Label" parent="." unique_id=1979200815]
+[node name="NameLabel" type="Label" parent="." unique_id=1979200815]
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -20.0
-offset_top = -33.0
-offset_right = 20.0
-offset_bottom = -10.0
+offset_left = -30.0
+offset_top = 2.0
+offset_right = 30.0
+offset_bottom = 14.0
 grow_horizontal = 2
 grow_vertical = 0
 text = "员工:x"
+label_settings = SubResource("LabelSettings_ufgfk")
+horizontal_alignment = 1
+
+[node name="ChatLabel" type="Label" parent="."]
+visible = false
+offset_left = -80.0
+offset_top = -54.0
+offset_right = 80.0
+offset_bottom = -30.0
+text = ""
 label_settings = SubResource("LabelSettings_ufgfk")
 horizontal_alignment = 1
 

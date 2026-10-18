@@ -13,7 +13,8 @@ enum Nav {
 @export var employee_name : String = "员工"
 @export var speed := 80.0
 @export var employee_state_manager : EmployeeStateManager
-@export var label : Label
+@export var name_label : Label
+@export var chat_label : Label
 
 var spawn_place : Location
 var work_place : Location
@@ -124,7 +125,8 @@ func init() -> void:
 	# 延后到本帧末尾才进初始状态：调用方通常在自己的 _ready 里配置坐标和导航服务，
 	# 立刻进状态的话，初始状态里的寻路会撞上还没配置好的服务
 	_start_initial_state.call_deferred()
-	label.text = self.employee_name
+	if name_label:
+		name_label.text = self.employee_name
 
 func _start_initial_state() -> void:
 	employee_state_manager.start_state_manager()
@@ -134,6 +136,22 @@ func _physics_process(delta: float) -> void:
 		navigating_process(delta)
 	# 状态机每帧都要 tick：不然不移动的状态（待机、到达后的判定）永远不执行
 	employee_state_manager._manager_process(delta)
+
+
+## 在头顶气泡里显示这句话（同一时刻只显示一句）
+func show_chat_line(text: String) -> void:
+	if chat_label == null:
+		return
+	chat_label.text = text
+	chat_label.visible = true
+
+
+## 收起头顶气泡
+func hide_chat_line() -> void:
+	if chat_label == null:
+		return
+	chat_label.text = ""
+	chat_label.visible = false
 
 
 ## 当前是否还在沿路径移动（给状态脚本和调试面板用）
