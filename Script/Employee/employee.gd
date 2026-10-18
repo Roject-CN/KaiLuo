@@ -1,6 +1,15 @@
 extends Node2D
 class_name Employee
 
+## 一次导航的结果。调用方应当等 navigation_finished，不要用 is_navigating() 反推「到了没有」——
+## 它分不清「从没开始」「正在走」「已经走完」。
+enum Nav {
+	IDLE,
+	MOVING,
+	ARRIVED,
+	FAILED,
+}
+
 @export var employee_name : String = "员工"
 @export var speed := 80.0
 @export var employee_state_manager : EmployeeStateManager
@@ -16,14 +25,31 @@ class Target :
 	var _has_target : bool = false
 var target := Target.new()
 
-signal navigation_over
+## 一次导航结束（成功或失败）都会发；result 是 Nav.ARRIVED 或 Nav.FAILED
+signal navigation_finished(result: Nav)
 
-func navigate(to : Vector2) -> void:
-	if NaviService.is_walkable(NaviService.world_to_cell(to)):
-		target._target_position = to
-		target._has_target = true
-		_navigating = true
-	
+## 请求走向某个世界坐标。
+## 返回 false 表示这次请求没有被接受：目标格不可走，或者从当前位置没有可达路径。
+## 被拒绝时会清空旧目标（员工停在原地），并发出 navigation_finished(FAILED)。
+func navigate(to : Vector2) -> bool:
+	_clear_navigation()
+
+	var to_cell := NaviService.world_to_cell(to)
+	if not NaviService.is_walkable(to_cell):
+		_fail_navigation()
+		return false
+
+	# 同格不用寻路；不同格必须先确认 A* 真能找到路。
+	# 否则「路径为空」会同时表示「同格」和「无路可走」，员工就会直线穿墙。
+	if to_cell != NaviService.world_to_cell(global_position) and not NaviService.has_path(global_position, to):
+		_fail_navigation()
+		return false
+
+	target._target_position = to
+	target._has_target = true
+	_navigating = true
+	return true
+
 func navigating_process(delta: float) -> void:
 	if not target._has_target:
 		_navigating = false
@@ -33,7 +59,8 @@ func navigating_process(delta: float) -> void:
 		self.global_position, target._target_position
 	)
 
-	# 路径空 = 和目标同格。此时可能还没走到精确坐标
+	# 路径空：navigate 已经排除了无路的情况，所以这里只可能是「和目标同格」。
+	# 同格时补上最后一点精确距离。
 	if _navigation_path.is_empty():
 		_finish_navigation(delta)
 		return
@@ -52,15 +79,20 @@ func navigating_process(delta: float) -> void:
 
 ## 同格后的收尾：如果还没到精确坐标，直线走过去
 func _finish_navigation(delta: float) -> void:
+	# 理论上不会走到这里：navigate 已经保证可达。
+	# 万一途中被判定为不可达，按失败处理，绝不允许直线穿墙。
+	if NaviService.world_to_cell(global_position) != NaviService.world_to_cell(target._target_position):
+		_fail_navigation()
+		return
+
 	var to_target := target._target_position - self.global_position
 	var dist := to_target.length()
 
 	if dist <= 1.0:
 		# 真到了
 		global_position = target._target_position
-		_navigating = false
-		target._has_target = false
-		navigation_over.emit()
+		_clear_navigation()
+		navigation_finished.emit(Nav.ARRIVED)
 		return
 
 	# 还没到：同格内直线靠近
@@ -69,6 +101,19 @@ func _finish_navigation(delta: float) -> void:
 		global_position = target._target_position
 	else:
 		global_position += to_target / dist * step
+
+
+## 清空导航状态（只改状态，不动位置）
+func _clear_navigation() -> void:
+	_navigating = false
+	target._has_target = false
+	_navigation_path = PackedVector2Array()
+
+
+## 导航失败：清空目标并广播，由调用方决定下一步
+func _fail_navigation() -> void:
+	_clear_navigation()
+	navigation_finished.emit(Nav.FAILED)
 
 func _ready() -> void:
 	if not employee_state_manager:

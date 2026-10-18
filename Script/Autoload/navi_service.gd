@@ -115,6 +115,17 @@ func find_world_path(from_world: Vector2, to_world: Vector2) -> PackedVector2Arr
 	return world_path
 	
 
+## 只判定「能不能走到」，不画调试路径（供导航发起前预检）。
+## find_world_path 在两端不可走时也返回空数组，所以不能拿空数组当失败判据。
+func has_path(from_world: Vector2, to_world: Vector2) -> bool:
+	var from_cell := world_to_cell(from_world)
+	var to_cell := world_to_cell(to_world)
+	if from_cell == to_cell:
+		return true
+	if not is_walkable(from_cell) or not is_walkable(to_cell):
+		return false
+	return not astar.get_id_path(from_cell, to_cell).is_empty()
+
 func find_stand_cell(target_world: Vector2) -> Variant:
 	var center := world_to_cell(target_world)
 	for offset in _STAND_OFFSETS:
