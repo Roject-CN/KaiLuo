@@ -14,6 +14,7 @@ func _ready() -> void:
 	for loc in locations:
 		_add_to_type(loc)
 
+	add_to_group("location_manager")
 
 func _add_to_type(loc: Location) -> void:
 	if loc.type == Location.TYPE.NULL:
@@ -36,8 +37,9 @@ func get_by_type(type: Location.TYPE) -> Array:
 func find_available(type: Location.TYPE, from_world: Vector2) -> Location:
 	var best: Location = null
 	var best_dist := INF
-	for loc in get_by_type(type):
-		if not loc.has_room():
+		
+	for loc : Location in get_by_type(type):
+		if loc.is_busy():
 			continue
 		var d := from_world.distance_squared_to(loc.global_position)
 		if d < best_dist:
@@ -46,19 +48,14 @@ func find_available(type: Location.TYPE, from_world: Vector2) -> Location:
 	return best
 
 
-## 按类型找“最近的可排队”
-func find_available_or_queueable(_type: Location.TYPE, _from_world: Vector2) -> Location:
-	return null
-
-
 
 ## 出生点：直接查 SPAWN_PLACE 类型的第一个
-func return_spawn_position() -> Vector2:
+func assign_spawn_location() -> Location:
 	var spawns := get_by_type(Location.TYPE.SPAWN_PLACE)
 	if spawns.is_empty():
 		push_error("LocationManager: 没有 SPAWN_PLACE 类型的 Location")
-		return Vector2.ZERO
-	return (spawns[0] as Location).return_global_position()
+		return null
+	return spawns[0] 
 
 func assign_work_location(employee_id: String) -> Location:
 	# 已经分配过，直接复用
@@ -70,14 +67,13 @@ func assign_work_location(employee_id: String) -> Location:
 		if not _work_assignment.values().has(loc):
 			_work_assignment[employee_id] = loc
 			return loc
-
+	
 	push_warning("LocationManager: 没有空闲的工作地点，员工 %s 未分配" % employee_id)
 	return null
 	
 ## 查询某个员工被分配到的工作地点
 func get_work_location(employee_id: String) -> Location:
 	return _work_assignment.get(employee_id, null)
-
 
 ## 释放某个员工的工作地点（员工离职 / 场景重置）
 func release_work_location(employee_id: String) -> void:
@@ -86,3 +82,13 @@ func release_work_location(employee_id: String) -> void:
 ## 清空所有分配（切场景 / 重开）
 func clear_assignments() -> void:
 	_work_assignment.clear()
+
+# 
+func find_employee_at_workplace(exclude: Employee = null) -> Employee:
+	var candidates: Array[Employee] = []
+	for loc in get_by_type(Location.TYPE.WORK_PLACE):
+		if loc.who_occupy and loc.who_occupy != exclude:
+			candidates.append(loc.who_occupy)
+	if candidates.is_empty():
+		return null
+	return candidates[randi() % candidates.size()]

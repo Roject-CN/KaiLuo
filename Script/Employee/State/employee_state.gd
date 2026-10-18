@@ -4,6 +4,9 @@ class_name EmployeeState
 enum STATE{
 	GOWORK, 
 	OFFWORK,
+	GOCHAT,
+	WAITING,
+	CHATTING
 }
 @export var state_name : STATE
 var employee : Employee

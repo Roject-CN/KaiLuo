@@ -37,6 +37,9 @@ const COLOR_LIGHT_TEXT := Color(0.12, 0.12, 0.12)
 @export var state_labels : Dictionary = {
 	EmployeeState.STATE.GOWORK: "上班",
 	EmployeeState.STATE.OFFWORK: "下班",
+	EmployeeState.STATE.GOCHAT: "去聊天",
+	EmployeeState.STATE.WAITING: "等待",
+	EmployeeState.STATE.CHATTING: "聊天",
 }
 
 var _tracked: Array[Employee] = []          # 已登记的员工

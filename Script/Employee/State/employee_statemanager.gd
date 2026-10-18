@@ -25,7 +25,7 @@ func start_state_manager() -> void:
 		current_state.state_enter()
 
 
-func _physics_process(delta: float) -> void:
+func _manager_process(delta: float) -> void:
 	if current_state:
 		current_state.state_process(delta)
 
@@ -33,6 +33,8 @@ func transition(to_state: EmployeeState.STATE) -> void:
 	var next := _states_by_name.get(to_state, null) as EmployeeState
 	if next == null:
 		push_error("EmployeeStateManager: 未注册状态 %s" % to_state)
+		return
+	if next == current_state:
 		return
 	if current_state:
 		current_state.state_exit()

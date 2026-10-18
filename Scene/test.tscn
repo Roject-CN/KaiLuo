@@ -110,9 +110,17 @@ metadata/_custom_type_script = "uid://tcwl5su3en25"
 [node name="Work1" type="Marker2D" parent="LocationManager" unique_id=684065909]
 position = Vector2(231, 332)
 script = ExtResource("5_puuaq")
+type = 1
 metadata/_custom_type_script = "uid://tcwl5su3en25"
 
 [node name="Work2" type="Marker2D" parent="LocationManager" unique_id=1119285268]
 position = Vector2(231, 237)
 script = ExtResource("5_puuaq")
+type = 1
 metadata/_custom_type_script = "uid://tcwl5su3en25"
+
+[node name="speaking_label" type="Label" parent="." unique_id=862534745 groups=["speaking_label"]]
+offset_left = 305.0
+offset_top = 241.0
+offset_right = 345.0
+offset_bottom = 264.0

@@ -16,9 +16,9 @@ func _ready() -> void:
 
 	# 员工在场景里摆好了，这里只把标记点坐标发给他们，初始状态用场景自带的
 	for employee in _employees():
-		employee.spawn_position = spawn_marker.global_position
-		employee.work_position = work_marker.global_position
-		employee.global_position = spawn_marker.global_position
+		employee.spawn_place = location_manager.assign_spawn_location()
+		employee.work_place = location_manager.assign_work_location(employee.employee_name)
+		employee.global_position = employee.spawn_place.return_global_position()
 		employee.init()
 
 func _employees() -> Array[Employee]:

@@ -1,0 +1,4 @@
+Scene 存放Godot游戏场景
+Script 存放Godot游戏脚本
+Sprite 存放游戏素材
+Resources 存放游戏的Resource类
