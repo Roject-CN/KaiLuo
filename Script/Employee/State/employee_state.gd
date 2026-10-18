@@ -6,7 +6,9 @@ enum STATE{
 	OFFWORK,
 	GOCHAT,
 	WAITING,
-	CHATTING
+	CHATTING,
+	USE_REST,
+	REPORT
 }
 @export var state_name : STATE
 var employee : Employee

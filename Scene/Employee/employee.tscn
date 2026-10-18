@@ -9,6 +9,8 @@
 [ext_resource type="Script" uid="uid://bvd5tsh5g7f21" path="res://Script/Employee/State/go_chat.gd" id="6_sgq72"]
 [ext_resource type="Script" uid="uid://7dlgg7a5dgmr" path="res://Script/Employee/State/employee_state.gd" id="7_bsshk"]
 [ext_resource type="Script" uid="uid://gjq7xdvlvkwg" path="res://Script/Employee/State/chatting.gd" id="8_ibk43"]
+[ext_resource type="Script" path="res://Script/Employee/State/use_rest.gd" id="9_userest"]
+[ext_resource type="Script" path="res://Script/Employee/State/report.gd" id="10_report"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_ufgfk"]
 font_size = 8
@@ -57,6 +59,15 @@ metadata/_custom_type_script = "uid://7dlgg7a5dgmr"
 script = ExtResource("8_ibk43")
 state_name = 4
 metadata/_custom_type_script = "uid://7dlgg7a5dgmr"
+
+[node name="UseRest" type="Node" parent="EmployeeStateManager"]
+script = ExtResource("9_userest")
+state_name = 5
+
+[node name="Report" type="Node" parent="EmployeeStateManager"]
+script = ExtResource("10_report")
+state_name = 6
+
 
 [node name="NameLabel" type="Label" parent="." unique_id=1979200815]
 anchors_preset = 7

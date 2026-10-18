@@ -119,3 +119,15 @@ position = Vector2(231, 237)
 script = ExtResource("5_puuaq")
 type = 1
 metadata/_custom_type_script = "uid://tcwl5su3en25"
+
+[node name="Rest1" type="Marker2D" parent="LocationManager"]
+position = Vector2(408, 424)
+script = ExtResource("5_puuaq")
+type = 2
+metadata/_custom_type_script = "uid://tcwl5su3en25"
+
+[node name="Boss1" type="Marker2D" parent="LocationManager"]
+position = Vector2(264, 168)
+script = ExtResource("5_puuaq")
+type = 3
+metadata/_custom_type_script = "uid://tcwl5su3en25"

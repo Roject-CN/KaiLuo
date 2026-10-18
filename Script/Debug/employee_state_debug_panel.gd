@@ -40,6 +40,8 @@ const COLOR_LIGHT_TEXT := Color(0.12, 0.12, 0.12)
 	EmployeeState.STATE.GOCHAT: "去聊天",
 	EmployeeState.STATE.WAITING: "等待",
 	EmployeeState.STATE.CHATTING: "聊天",
+	EmployeeState.STATE.USE_REST: "休息",
+	EmployeeState.STATE.REPORT: "汇报",
 }
 
 var _tracked: Array[Employee] = []          # 已登记的员工
