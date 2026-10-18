@@ -120,14 +120,14 @@ script = ExtResource("5_puuaq")
 type = 1
 metadata/_custom_type_script = "uid://tcwl5su3en25"
 
-[node name="Rest1" type="Marker2D" parent="LocationManager"]
-position = Vector2(408, 424)
+[node name="Rest1" type="Marker2D" parent="LocationManager" unique_id=787670312]
+position = Vector2(262, 149)
 script = ExtResource("5_puuaq")
 type = 2
 metadata/_custom_type_script = "uid://tcwl5su3en25"
 
-[node name="Boss1" type="Marker2D" parent="LocationManager"]
-position = Vector2(264, 168)
+[node name="Boss1" type="Marker2D" parent="LocationManager" unique_id=1703442174]
+position = Vector2(322, 166)
 script = ExtResource("5_puuaq")
 type = 3
 metadata/_custom_type_script = "uid://tcwl5su3en25"
