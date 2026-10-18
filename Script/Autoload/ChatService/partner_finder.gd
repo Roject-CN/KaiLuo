@@ -4,9 +4,9 @@ extends Node
 ## 只回答两个问题：找谁聊、在哪聊。
 ## 不做会话登记，也不切任何状态——那些属于 ChatService / SessionBook。
 
-## 会合点与对方的最小距离（像素）。
-## 16 = 一格；想彻底不叠在一起，把它调到 32（两格）即可，不用改代码。
-@export var min_stand_distance: float = 16.0
+## 会合点从对方所在格往外推几格。
+## 0 = 紧挨着（会叠在一起）；默认 1 = 隔一格，两个 24px 精灵刚好不重叠。
+@export var extra_stand_cells: int = 1
 
 var _location_manager: LocationManager
 
@@ -26,7 +26,7 @@ func find_partner(from: Employee) -> Dictionary:
 		return {}
 
 	var partner: Employee = candidates[randi() % candidates.size()]
-	var stand_cell = NaviService.find_stand_cell(partner.global_position, min_stand_distance)
+	var stand_cell = NaviService.find_stand_cell(partner.global_position, extra_stand_cells)
 	if stand_cell == null:
 		return {}
 
